@@ -19,5 +19,6 @@ function renderTasks(tasks) {
 			<p>${task.description}</p>
 			<hr>
 		`;
+		container.appendChild(div);
 	});
 }
