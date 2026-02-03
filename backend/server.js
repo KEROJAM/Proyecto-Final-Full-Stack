@@ -5,8 +5,7 @@ const app = express();
 
 const db = mysql.createConnection({
 	host: 'localhost',
-	user: 'tu_usuario',
-	password: 'tu_password',
+	user: 'root',
 	database: 'todo_db'
 });
 
@@ -18,7 +17,7 @@ db.connect(err => {
 	}
 });
 
-app.get('api/tasks', (req, res) => {
+app.get('/api/tasks', (req, res) => {
 	db.execute('SELECT * FROM tasks ORDER BY created_at DESC',
 		(err, results) => {
 			if (err) return res.status(500).json(err);
