@@ -1,6 +1,7 @@
 const API_URL = 'http://localhost:3000/api/tasks';
 
 const container = document.getElementById('tasksContainer');
+const form = document.getElementById('taskForm');
 
 async function loadTasks() {
 	const response = await fetch(API_URL);
@@ -22,3 +23,21 @@ function renderTasks(tasks) {
 		container.appendChild(div);
 	});
 }
+
+form addEventListener('submit', async (e) => {
+	e.preventDefault();
+	const title = document.getElementById('title').value;
+	const description = document.getElementById('description').value;
+
+	await fetch(API_URL, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ title, description })
+	});
+
+	form.reset();
+
+	loadTasks();
+});
