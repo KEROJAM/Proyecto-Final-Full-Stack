@@ -10,6 +10,18 @@ async function loadTasks() {
 	renderTasks(tasks);
 }
 
+async function deleteTask(id) {
+	const confirmDelete = confirm('Desea eliminar esta tarea?');
+
+	if (!confirmDelete) {
+		return;
+	}
+
+	await fetch(`${API_URL}/${id}`, {
+		method: 'DELETE'
+	});
+}
+
 function renderTasks(tasks) {
 	container.innerHTML = "";
 
@@ -23,6 +35,8 @@ function renderTasks(tasks) {
 		container.appendChild(div);
 	});
 }
+
+document.addEventListener('DOMContentLoaded', loadTasks);
 
 form addEventListener('submit', async (e) => {
 	e.preventDefault();
@@ -40,4 +54,10 @@ form addEventListener('submit', async (e) => {
 	form.reset();
 
 	loadTasks();
+});
+
+form.addEventListener('submit', async (e) => {
+	e.preventDefault();
+
+	const title = document
 });
