@@ -30,6 +30,9 @@ function renderTasks(tasks) {
 		div.innerHTML = `
 			<h3>${task.title}</h3>
 			<p>${task.description}</p>
+			<button onclick="deleteTask(${task.id})">
+				Eliminar
+			</ button>
 			<hr>
 		`;
 		container.appendChild(div);
@@ -38,7 +41,7 @@ function renderTasks(tasks) {
 
 document.addEventListener('DOMContentLoaded', loadTasks);
 
-form addEventListener('submit', async (e) => {
+form.addEventListener('submit', async (e) => {
 	e.preventDefault();
 	const title = document.getElementById('title').value;
 	const description = document.getElementById('description').value;
