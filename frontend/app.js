@@ -7,9 +7,10 @@ let tasks = [];
 
 async function loadTasks() {
 	const response = await fetch(API_URL);
+	const tasks = await response.json();
 
 	console.log(" Leemos respuestas", response);
-	console.log(" revisamos tareas", tasks);
+
 	renderTasks(tasks);
 }
 
@@ -35,11 +36,11 @@ function renderTasks(tasks) {
 			<p>${task.description}</p>
 			<button onclick="deleteTask(${task.id})">
 				Eliminar
-			</ button>
+			</button>
 
 			<button on click="editTask(${task.id})">
-			Editar
-			</button?>
+				Editar
+			</button>
 			<hr>
 		`;
 		container.appendChild(div);
