@@ -3,10 +3,13 @@ const API_URL = 'http://localhost:3000/api/tasks';
 const container = document.getElementById('tasksContainer');
 const form = document.getElementById('taskForm');
 
+let tasks = [];
+
 async function loadTasks() {
 	const response = await fetch(API_URL);
-	const tasks = await response.json();
 
+	console.log(" Leemos respuestas", response);
+	console.log(" revisamos tareas", tasks);
 	renderTasks(tasks);
 }
 
@@ -33,6 +36,10 @@ function renderTasks(tasks) {
 			<button onclick="deleteTask(${task.id})">
 				Eliminar
 			</ button>
+
+			<button on click="editTask(${task.id})">
+			Editar
+			</button?>
 			<hr>
 		`;
 		container.appendChild(div);
@@ -64,3 +71,26 @@ form.addEventListener('submit', async (e) => {
 
 	const title = document
 });
+
+async function editTask(id) {
+	const task = tasks.find(t => t.id === id);
+
+	const newTitle = prompt('Nuevo titulo:', task.title);
+	const newDescription = prompt('Nueva Descripcion: ', task.description);
+
+	if (newTitle === null) return;
+
+	await fetch(`${API_URL}/${id}`, {
+		method: 'PUT',
+		headers: {
+			'Content-Tupe': 'application/json'
+		},
+		body: JSON.stringify({
+			title: newTitle,
+			description: newDescription,
+			completed: task.completed
+		})
+	});
+
+	loadTasks();
+}

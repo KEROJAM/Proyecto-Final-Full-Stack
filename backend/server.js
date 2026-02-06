@@ -60,9 +60,29 @@ app.delete('/api/tasks/:id', (req, res) => {
 		if (err) return res.status(500).json(err);
 
 		if (result.affectedRows == 0) {
-			return res.status(404).json({ erro: 'Tarea no encontrada' });
-		}
+			return res.status(404).json({ error: 'Tarea no encontrada' });
+			res.json({ message: 'Tarea eliminada' });
+		};
+	});
 
-		res.json({ message: 'Tarea eliminada' });
+});
+
+app.put('/api/tasks/:id', (req, res) => {
+	const { id } = req.params;
+	const { title, description, completed } = req.body;
+
+	const query = `
+		UPDATE tasks
+		SET title = ?, description = ?, completed = ?
+		WHERE id = ?
+	`;
+
+	db.execute(query, [title, description, completed, id], (err, result) => {
+		if (err) return res.status(500).json(err);
+
+		if (result.affectedRows(Rows === 0)) {
+			return res.status(404).json.error({ message: 'tarea no encontrada' });
+		};
+		res.json({ message: 'Tarea actualizada' });
 	});
 });
