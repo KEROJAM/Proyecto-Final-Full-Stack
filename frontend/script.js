@@ -22,8 +22,9 @@ let currentFilter = 'all';
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
     setupEventListeners();
+    showApp();
+    loadTasks();
 });
 
 // Configurar event listeners
@@ -159,8 +160,7 @@ async function handleTaskSubmit(e) {
         const response = await fetch(`${API_URL}/tasks`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ title, description })
         });
@@ -183,11 +183,7 @@ async function handleTaskSubmit(e) {
 // Cargar tareas
 async function loadTasks() {
     try {
-        const response = await fetch(`${API_URL}/tasks/my-tasks`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
+        const response = await fetch(`${API_URL}/tasks/my-tasks`);
 
         const tasks = await response.json();
 
@@ -268,8 +264,7 @@ async function toggleTask(id, completed) {
         const response = await fetch(`${API_URL}/tasks/${id}`, {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ completed })
         });
@@ -307,8 +302,7 @@ async function updateTask(id, title, description, completed) {
         const response = await fetch(`${API_URL}/tasks/${id}`, {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ title, description, completed })
         });
@@ -333,10 +327,7 @@ async function deleteTask(id) {
 
     try {
         const response = await fetch(`${API_URL}/tasks/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            method: 'DELETE'
         });
 
         const data = await response.json();
@@ -385,10 +376,9 @@ function showApp() {
     loginSection.style.display = 'none';
     registerSection.style.display = 'none';
     appSection.style.display = 'block';
-
-    if (currentUser) {
-        userDisplay.textContent = `👤 ${currentUser.username}`;
-    }
+    
+    userDisplay.textContent = `👤 Invitado`;
+    logoutBtn.style.display = 'none';
 }
 
 // Mostrar toast
