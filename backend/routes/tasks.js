@@ -59,10 +59,33 @@ router.put('/:id', async (req, res, next) => {
     const { id } = req.params;
     const { title, description, completed } = req.body;
 
+    // Obtener la tarea actual para conservar datos si no se proporcionan
     const db = await createConnectionPool();
+    const [currentTask] = await db.execute(
+      'SELECT * FROM tasks WHERE id = ?',
+      [id]
+    );
+
+    if (currentTask.length === 0) {
+      return res.status(404).json({ error: 'Tarea no encontrada' });
+    }
+
+    const task = currentTask[0];
+    
+    // Validar que se proporciona título si no existe uno previo
+    const finalTitle = title !== undefined ? title : task.title;
+    if (!finalTitle) {
+      return res.status(400).json({ error: 'El título es obligatorio' });
+    }
+
     const [result] = await db.execute(
-      'UPDATE tasks SET title = ?, description = ?, completed = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [title, description, completed || false, id]
+      'UPDATE tasks SET title = ?, description = ?, completed = ? WHERE id = ?',
+      [
+        finalTitle, 
+        description !== undefined ? description : task.description, 
+        completed !== undefined ? completed : task.completed, 
+        id
+      ]
     );
 
     if (result.affectedRows === 0) {
