@@ -106,7 +106,7 @@ async function setupDatabase(connection, config) {
     const tempConnection = await tempPool.getConnection();
     
     // Verificar si la base de datos existe
-    const [databases] = await tempConnection.execute('SHOW DATABASES LIKE ?', [config.database]);
+    const [databases] = await tempConnection.query('SHOW DATABASES LIKE ?', [config.database]);
     
     if (databases.length === 0) {
       console.log(`Base de datos '${config.database}' no encontrada. Creándola...`);
@@ -123,11 +123,15 @@ async function setupDatabase(connection, config) {
         const statements = sqlContent
           .split(';')
           .map(stmt => stmt.trim())
-          .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+          .filter(stmt => stmt.length > 0 && !stmt.startsWith('--') && !stmt.startsWith('CREATE DATABASE') && !stmt.startsWith('USE '));
         
         for (const statement of statements) {
           if (statement.trim()) {
-            await tempConnection.execute(statement);
+            try {
+              await tempConnection.query(statement);
+            } catch (stmtError) {
+              console.warn('Advertencia en sentencia SQL:', stmtError.message);
+            }
           }
         }
         
