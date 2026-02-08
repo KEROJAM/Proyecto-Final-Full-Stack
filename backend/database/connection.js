@@ -46,38 +46,9 @@ async function createConnectionPool() {
         rl.question(prompt, resolve);
       });
 
-      // Ocultar entrada de contraseña
-      const questionPassword = (prompt) => new Promise((resolve) => {
-        const stdin = process.stdin;
-        stdin.setRawMode(true);
-        process.stdout.write(prompt);
-        
-        let password = '';
-        stdin.on('data', function(char) {
-          char = char.toString();
-          switch (char) {
-            case '\n':
-            case '\r':
-            case '\u0004':
-              stdin.setRawMode(false);
-              stdin.removeAllListeners('data');
-              console.log();
-              resolve(password);
-              break;
-            case '\u0003':
-              process.exit();
-              break;
-            default:
-              process.stdout.write('*');
-              password += char;
-              break;
-          }
-        });
-      });
-
       try {
         const dbUser = await question('Usuario de MySQL: ');
-        const dbPassword = await questionPassword('Contraseña de MySQL (presiona Enter si no tienes): ');
+        const dbPassword = await question('Contraseña de MySQL (presiona Enter si no tienes): ');
         const dbHost = await question('Host de MySQL (localhost): ') || 'localhost';
         const dbName = await question('Nombre de la base de datos (todo_db): ') || 'todo_db';
 
