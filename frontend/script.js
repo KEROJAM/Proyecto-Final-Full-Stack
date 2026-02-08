@@ -1,22 +1,13 @@
 const API_URL = 'http://localhost:3001/api';
 
 // Elementos del DOM
-const loginSection = document.getElementById('loginSection');
-const registerSection = document.getElementById('registerSection');
 const appSection = document.getElementById('appSection');
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
 const taskForm = document.getElementById('taskForm');
 const tasksList = document.getElementById('tasksList');
-const userDisplay = document.getElementById('userDisplay');
-const logoutBtn = document.getElementById('logoutBtn');
-const showRegisterLink = document.getElementById('showRegister');
-const showLoginLink = document.getElementById('showLogin');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toastMessage');
 
 // Variables globales
-let currentUser = null;
 let currentTasks = [];
 let currentFilter = 'all';
 
@@ -30,20 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Configurar event listeners
 function setupEventListeners() {
     // Formularios
-    loginForm.addEventListener('submit', handleLogin);
-    registerForm.addEventListener('submit', handleRegister);
     taskForm.addEventListener('submit', handleTaskSubmit);
-
-    // Navegación
-    logoutBtn.addEventListener('click', handleLogout);
-    showRegisterLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        showRegister();
-    });
-    showLoginLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        showLogin();
-    });
 
     // Filtros
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -53,101 +31,6 @@ function setupEventListeners() {
     });
 }
 
-// Verificar autenticación
-function checkAuth() {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-
-    if (token && user) {
-        currentUser = JSON.parse(user);
-        showApp();
-        loadTasks();
-    } else {
-        showLogin();
-    }
-}
-
-// Manejar login
-async function handleLogin(e) {
-    e.preventDefault();
-
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-
-    try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            currentUser = data.user;
-
-            showToast('Login exitoso', 'success');
-            showApp();
-            loadTasks();
-        } else {
-            showToast(data.error || 'Error en el login', 'error');
-        }
-    } catch (error) {
-        showToast('Error de conexión', 'error');
-        console.error('Error en login:', error);
-    }
-}
-
-// Manejar registro
-async function handleRegister(e) {
-    e.preventDefault();
-
-    const username = document.getElementById('registerUsername').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-
-    if (password !== confirmPassword) {
-        showToast('Las contraseñas no coinciden', 'error');
-        return;
-    }
-
-    if (password.length < 6) {
-        showToast('La contraseña debe tener al menos 6 caracteres', 'error');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/auth/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, email, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            currentUser = data.user;
-
-            showToast('Registro exitoso', 'success');
-            showApp();
-            loadTasks();
-        } else {
-            showToast(data.error || 'Error en el registro', 'error');
-        }
-    } catch (error) {
-        showToast('Error de conexión', 'error');
-        console.error('Error en registro:', error);
-    }
-}
 
 // Manejar envío de tarea
 async function handleTaskSubmit(e) {
@@ -344,41 +227,9 @@ async function deleteTask(id) {
     }
 }
 
-// Manejar logout
-function handleLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    currentUser = null;
-    currentTasks = [];
-
-    showToast('Sesión cerrada', 'success');
-    showLogin();
-}
-
-// Mostrar login
-function showLogin() {
-    loginSection.style.display = 'flex';
-    registerSection.style.display = 'none';
-    appSection.style.display = 'none';
-    loginForm.reset();
-}
-
-// Mostrar registro
-function showRegister() {
-    loginSection.style.display = 'none';
-    registerSection.style.display = 'flex';
-    appSection.style.display = 'none';
-    registerForm.reset();
-}
-
 // Mostrar aplicación
 function showApp() {
-    loginSection.style.display = 'none';
-    registerSection.style.display = 'none';
     appSection.style.display = 'block';
-
-    userDisplay.textContent = `👤 Invitado`;
-    logoutBtn.style.display = 'none';
 }
 
 // Mostrar toast
