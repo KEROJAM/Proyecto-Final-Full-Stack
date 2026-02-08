@@ -25,6 +25,10 @@ async function createConnectionPool() {
       const testPool = mysql.createPool(config);
       const connection = await testPool.getConnection();
       console.log('Conexión exitosa con valores por defecto');
+      
+      // Verificar si la base de datos existe, si no, crearla
+      await setupDatabase(connection, config);
+      
       connection.release();
       pool = testPool;
       return pool;
@@ -94,6 +98,10 @@ async function createConnectionPool() {
         const testPool = mysql.createPool(config);
         const connection = await testPool.getConnection();
         console.log('Conexión exitosa con las credenciales ingresadas');
+        
+        // Verificar si la base de datos existe, si no, crearla
+        await setupDatabase(connection, config);
+        
         connection.release();
         pool = testPool;
         return pool;
@@ -107,7 +115,68 @@ async function createConnectionPool() {
   } else {
     // Usar variables de entorno
     pool = mysql.createPool(config);
+    
+    // Verificar si la base de datos existe
+    const connection = await pool.getConnection();
+    await setupDatabase(connection, config);
+    connection.release();
+    
     return pool;
+  }
+}
+
+async function setupDatabase(connection, config) {
+  try {
+    // Primero conectarse sin especificar la base de datos para poder crearla si no existe
+    const tempConfig = { ...config };
+    delete tempConfig.database;
+    
+    const tempPool = mysql.createPool(tempConfig);
+    const tempConnection = await tempPool.getConnection();
+    
+    // Verificar si la base de datos existe
+    const [databases] = await tempConnection.execute('SHOW DATABASES LIKE ?', [config.database]);
+    
+    if (databases.length === 0) {
+      console.log(`Base de datos '${config.database}' no encontrada. Creándola...`);
+      
+      // Leer y ejecutar el archivo SQL
+      const fs = require('fs').promises;
+      const path = require('path');
+      
+      try {
+        const sqlPath = path.join(__dirname, '../../mysql.sql');
+        const sqlContent = await fs.readFile(sqlPath, 'utf8');
+        
+        // Separar las sentencias SQL y ejecutarlas
+        const statements = sqlContent
+          .split(';')
+          .map(stmt => stmt.trim())
+          .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+        
+        for (const statement of statements) {
+          if (statement.trim()) {
+            await tempConnection.execute(statement);
+          }
+        }
+        
+        console.log(`Base de datos '${config.database}' creada exitosamente`);
+      } catch (sqlError) {
+        console.error('Error al ejecutar el archivo SQL:', sqlError.message);
+        tempConnection.release();
+        await tempPool.end();
+        throw sqlError;
+      }
+    } else {
+      console.log(`Base de datos '${config.database}' ya existe`);
+    }
+    
+    tempConnection.release();
+    await tempPool.end();
+    
+  } catch (error) {
+    console.error('Error al configurar la base de datos:', error.message);
+    throw error;
   }
 }
 
