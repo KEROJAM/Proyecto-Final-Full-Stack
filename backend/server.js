@@ -1,88 +1,42 @@
+require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2');
-//const cors = require('cors');
+const cors = require('cors');
+const path = require('path');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+
+// Importar rutas
+const authRoutes = require('./routes/auth');
+const taskRoutes = require('./routes/tasks');
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-const db = mysql.createConnection({
-	host: 'localhost',
-	user: 'root',
-	database: 'todo_db'
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5500',
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos del frontend
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Rutas API
+app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
+
+// Ruta principal para servir el frontend
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-//app.use(cors());
+// Middleware de manejo de errores
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-db.connect(err => {
-	if (err) {
-		console.error(err);
-	} else {
-		console.log('Conectado a MySQL');
-	}
-});
-
-app.get('/api/tasks', (req, res) => {
-	db.execute('SELECT * FROM tasks ORDER BY created_at DESC',
-		(err, results) => {
-			if (err) return res.status(500).json(err);
-			res.json(results);
-		});
-});
-
-app.listen(3000, () => {
-	console.log('Servidor en http://localhost:3000');
-});
-
-
-app.post('/api/tasks', (req, res) => {
-	const title = req.body.title;
-	const description = req.body.description;
-
-	if (!title) {
-		return res.status(400).json({ error: 'El titulo es obligatorio' });
-	}
-	const query = "INSERT INTO tasks (title, description) VALUES (?,?)";
-
-	db.execute(query, [title, description], (err, result) => {
-		if (err) return res.status(500).json(err);
-		res.status(201).json({
-			message: 'Tarea Creada',
-			id: result.insertId
-		});
-	});
-});
-
-app.delete('/api/tasks/:id', (req, res) => {
-	const { id } = req.params;
-
-	const query = "DELETE FROM tasks WHERE id =?";
-
-	db.execute(query, [id], (err, result) => {
-		if (err) return res.status(500).json(err);
-
-		if (result.affectedRows == 0) {
-			return res.status(404).json({ error: 'Tarea no encontrada' });
-			res.json({ message: 'Tarea eliminada' });
-		};
-	});
-
-});
-
-app.put('/api/tasks/:id', (req, res) => {
-	const { id } = req.params;
-	const { title, description, completed } = req.body;
-
-	const query = `
-		UPDATE tasks
-		SET title = ?, description = ?, completed = ?
-		WHERE id = ?
-	`;
-
-	db.execute(query, [title, description, completed, id], (err, result) => {
-		if (err) return res.status(500).json(err);
-
-		if (result.affectedRows(Rows === 0)) {
-			return res.status(404).json.error({ message: 'tarea no encontrada' });
-		};
-		res.json({ message: 'Tarea actualizada' });
-	});
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`Entorno: ${process.env.NODE_ENV}`);
 });

@@ -1,21 +1,116 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		<meta lang="es">
-		<title>Mis Tareas</title>
-		<link rel="stylesheet" href="CSS/styles.css">
-	</head>
-	<body>
-		<h1>Lista de Tareas</h1>
-		<div id="tasksContainer">
-			Cargando tareas...
-		<div>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Tareas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Login Section -->
+    <div id="loginSection" class="wrapper">
+        <div class="login-box">
+            <div class="login-header">
+                <span>Login</span>
+            </div>
+            <form id="loginForm">
+                <div class="input-box">
+                    <input type="text" id="loginUsername" class="input-field" required>
+                    <label for="loginUsername" class="label">Usuario o Email</label>
+                </div>
+                <div class="input-box">
+                    <input type="password" id="loginPassword" class="input-field" required>
+                    <label for="loginPassword" class="label">Contraseña</label>
+                </div>
+                <div class="remember-forgot">
+                    <label><input type="checkbox"> Recordarme</label>
+                    <a href="#">¿Olvidaste tu contraseña?</a>
+                </div>
+                <button type="submit" class="input-submit">Iniciar Sesión</button>
+            </form>
+            <div class="register">
+                <p>¿No tienes cuenta? <a href="#" id="showRegister">Regístrate</a></p>
+            </div>
+        </div>
+    </div>
 
-		<form id="taskForm">
-			<input type="text" id="title" placeholder="Titulo" required>
-			<input type="text" id="description" placeholder="Descripcion">
-			<button type="submit"> Agregar Tarea </button>
-		<script src="app.js"></script>
-	</body>
+    <!-- Register Section -->
+    <div id="registerSection" class="wrapper" style="display: none;">
+        <div class="login-box">
+            <div class="login-header">
+                <span>Registro</span>
+            </div>
+            <form id="registerForm">
+                <div class="input-box">
+                    <input type="text" id="registerUsername" class="input-field" required>
+                    <label for="registerUsername" class="label">Usuario</label>
+                </div>
+                <div class="input-box">
+                    <input type="email" id="registerEmail" class="input-field" required>
+                    <label for="registerEmail" class="label">Email</label>
+                </div>
+                <div class="input-box">
+                    <input type="password" id="registerPassword" class="input-field" required>
+                    <label for="registerPassword" class="label">Contraseña</label>
+                </div>
+                <div class="input-box">
+                    <input type="password" id="confirmPassword" class="input-field" required>
+                    <label for="confirmPassword" class="label">Confirmar Contraseña</label>
+                </div>
+                <button type="submit" class="input-submit">Registrarse</button>
+            </form>
+            <div class="register">
+                <p>¿Ya tienes cuenta? <a href="#" id="showLogin">Inicia Sesión</a></p>
+            </div>
+        </div>
+    </div>
 
+    <!-- Main App Section -->
+    <div id="appSection" style="display: none;">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <h1>Mis Tareas</h1>
+                <div class="user-info">
+                    <span id="userDisplay"></span>
+                    <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="task-form-container">
+                <h2>Agregar Nueva Tarea</h2>
+                <form id="taskForm" class="task-form">
+                    <div class="form-group">
+                        <input type="text" id="taskTitle" placeholder="Título de la tarea" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="taskDescription" placeholder="Descripción (opcional)" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Agregar Tarea</button>
+                </form>
+            </div>
+
+            <div class="tasks-container">
+                <h2>Mis Tareas</h2>
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">Todas</button>
+                    <button class="filter-btn" data-filter="pending">Pendientes</button>
+                    <button class="filter-btn" data-filter="completed">Completadas</button>
+                </div>
+                <div id="tasksList" class="tasks-list">
+                    <p class="loading">Cargando tareas...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
