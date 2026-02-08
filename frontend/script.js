@@ -376,7 +376,7 @@ function showApp() {
     loginSection.style.display = 'none';
     registerSection.style.display = 'none';
     appSection.style.display = 'block';
-    
+
     userDisplay.textContent = `👤 Invitado`;
     logoutBtn.style.display = 'none';
 }

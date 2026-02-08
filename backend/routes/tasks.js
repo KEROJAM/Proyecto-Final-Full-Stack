@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/connection');
-const authMiddleware = require('../middleware/auth');
+
 
 // Obtener todas las tareas (público)
 router.get('/', async (req, res, next) => {
@@ -37,8 +37,8 @@ router.post('/', async (req, res, next) => {
     }
 
     const [result] = await db.execute(
-      'INSERT INTO tasks (title, description, user_id) VALUES (?, ?, ?)',
-      [title, description || '', 1]
+      'INSERT INTO tasks (title, description) VALUES (?, ?)',
+      [title, description || '']
     );
 
     res.status(201).json({
