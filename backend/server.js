@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const pool = require('./database/connection');
+const createConnectionPool = require('./database/connection');
 
 // Importar rutas
 const taskRoutes = require('./routes/tasks');
@@ -24,10 +24,12 @@ app.listen(PORT, async () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 
   try {
+    const pool = await createConnectionPool();
     const connection = await pool.getConnection();
     console.log('Conectado a MySQL');
     connection.release();
   } catch (error) {
     console.error('Error al conectar a MySQL:', error.message);
+    process.exit(1);
   }
 });

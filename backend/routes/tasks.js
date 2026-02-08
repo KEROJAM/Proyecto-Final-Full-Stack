@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/connection');
+const createConnectionPool = require('../database/connection');
 
 
 // Obtener todas las tareas (público)
 router.get('/', async (req, res, next) => {
   try {
+    const db = await createConnectionPool();
     const [tasks] = await db.execute(
       'SELECT * FROM tasks ORDER BY created_at DESC'
     );
@@ -18,6 +19,7 @@ router.get('/', async (req, res, next) => {
 // Obtener todas las tareas (público)
 router.get('/my-tasks', async (req, res, next) => {
   try {
+    const db = await createConnectionPool();
     const [tasks] = await db.execute(
       'SELECT * FROM tasks ORDER BY created_at DESC'
     );
@@ -36,6 +38,7 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'El título es obligatorio' });
     }
 
+    const db = await createConnectionPool();
     const [result] = await db.execute(
       'INSERT INTO tasks (title, description) VALUES (?, ?)',
       [title, description || '']
@@ -56,6 +59,7 @@ router.put('/:id', async (req, res, next) => {
     const { id } = req.params;
     const { title, description, completed } = req.body;
 
+    const db = await createConnectionPool();
     const [result] = await db.execute(
       'UPDATE tasks SET title = ?, description = ?, completed = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [title, description, completed || false, id]
@@ -76,6 +80,7 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    const db = await createConnectionPool();
     const [result] = await db.execute(
       'DELETE FROM tasks WHERE id = ?',
       [id]
