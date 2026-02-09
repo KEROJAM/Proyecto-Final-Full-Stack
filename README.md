@@ -2,7 +2,7 @@
 
 ## Descripción del Proyecto
 
-Esta es una aplicación full stack para la gestión de tareas personales con autenticación de usuarios. La aplicación permite a los usuarios registrarse, iniciar sesión, crear, editar, eliminar y marcar tareas como completadas.
+Esta es una aplicación full stack para la gestión de tareas personales. La aplicación permite a los usuarios crear, editar, eliminar y marcar tareas como completadas sin necesidad de autenticación, simplificando el uso y enfocándose en la funcionalidad principal.
 
 ## Tecnologías Utilizadas
 
@@ -10,31 +10,27 @@ Esta es una aplicación full stack para la gestión de tareas personales con aut
 - **Node.js** - Entorno de ejecución JavaScript
 - **Express.js** - Framework web para Node.js
 - **MySQL** - Base de datos relacional
-- **JWT (JSON Web Tokens)** - Autenticación y autorización
-- **bcryptjs** - Encriptación de contraseñas
+- **mysql2** - Driver MySQL para Node.js
 - **cors** - Configuración de CORS
 - **dotenv** - Gestión de variables de entorno
 
 ### Frontend
 - **HTML5** - Estructura semántica
-- **CSS3** - Estilos con diseño Glassmorphism
+- **CSS3** - Estilos con diseño moderno
 - **JavaScript (ES6+)** - Lógica del cliente
 - **Fetch API** - Comunicación con el backend
 
 ## Estructura del Proyecto
 
 ```
-Proyecto-Final-Full-Stack-cp/
+Proyecto-Final-Full-Stack/
 ├── backend/
+│   ├── database/
+│   │   └── connection.js    # Configuración de base de datos con auto-configuración
 │   ├── middleware/
-│   │   ├── auth.js          # Middleware de autenticación
 │   │   └── errorHandler.js  # Middleware de manejo de errores
 │   ├── routes/
-│   │   ├── auth.js          # Rutas de autenticación
 │   │   └── tasks.js         # Rutas de gestión de tareas
-│   ├── database/
-│   │   └── connection.js    # Configuración de base de datos
-│   ├── .env                 # Variables de entorno
 │   ├── package.json         # Dependencias del proyecto
 │   └── server.js            # Servidor principal
 ├── frontend/
@@ -42,118 +38,42 @@ Proyecto-Final-Full-Stack-cp/
 │   ├── styles.css           # Estilos CSS
 │   └── script.js            # Lógica JavaScript
 ├── mysql.sql                # Script de base de datos
+├── DESPLIEGUE.md            # Guía completa de despliegue
 └── README.md               # Documentación
 ```
 
 ## Endpoints de la API
 
-### Autenticación
-
-#### POST /api/auth/register
-Registra un nuevo usuario.
-
-**Body:**
-```json
-{
-  "username": "string",
-  "email": "string",
-  "password": "string"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Usuario registrado exitosamente",
-  "token": "string",
-  "user": {
-    "id": "number",
-    "username": "string",
-    "email": "string"
-  }
-}
-```
-
-#### POST /api/auth/login
-Inicia sesión de un usuario existente.
-
-**Body:**
-```json
-{
-  "username": "string",
-  "password": "string"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Login exitoso",
-  "token": "string",
-  "user": {
-    "id": "number",
-    "username": "string",
-    "email": "string"
-  }
-}
-```
-
 ### Tareas
 
 #### GET /api/tasks
-Obtiene todas las tareas públicas.
+Obtiene todas las tareas ordenadas por fecha de creación.
 
 **Response:**
 ```json
 [
   {
-    "id": "number",
-    "title": "string",
-    "description": "string",
-    "completed": "boolean",
-    "user_id": "number",
-    "created_at": "string",
-    "updated_at": "string"
+    "id": 1,
+    "title": "Aprender Express",
+    "description": "Conceptos Básicos",
+    "completed": false,
+    "created_at": "2024-01-01T10:00:00.000Z",
+    "updated_at": "2024-01-01T10:00:00.000Z"
   }
 ]
 ```
 
 #### GET /api/tasks/my-tasks
-Obtiene las tareas del usuario autenticado.
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**Response:**
-```json
-[
-  {
-    "id": "number",
-    "title": "string",
-    "description": "string",
-    "completed": "boolean",
-    "user_id": "number",
-    "created_at": "string",
-    "updated_at": "string"
-  }
-]
-```
+Endpoint alternativo que retorna todas las tareas (para compatibilidad).
 
 #### POST /api/tasks
 Crea una nueva tarea.
 
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
 **Body:**
 ```json
 {
-  "title": "string",
-  "description": "string"
+  "title": "Nueva Tarea",
+  "description": "Descripción opcional"
 }
 ```
 
@@ -161,24 +81,19 @@ Authorization: Bearer <token>
 ```json
 {
   "message": "Tarea creada exitosamente",
-  "id": "number"
+  "id": 123
 }
 ```
 
 #### PUT /api/tasks/:id
 Actualiza una tarea existente.
 
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
 **Body:**
 ```json
 {
-  "title": "string",
-  "description": "string",
-  "completed": "boolean"
+  "title": "Título Actualizado",
+  "description": "Descripción actualizada",
+  "completed": true
 }
 ```
 
@@ -192,11 +107,6 @@ Authorization: Bearer <token>
 #### DELETE /api/tasks/:id
 Elimina una tarea.
 
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
 **Response:**
 ```json
 {
@@ -206,36 +116,14 @@ Authorization: Bearer <token>
 
 ## Configuración del Entorno
 
-### Variables de Entorno
+## Base de Datos
 
-Crea un archivo `.env` en la carpeta `backend/` con las siguientes variables:
+El sistema incluye auto-configuración de la base de datos:
 
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=todo_db
-
-# JWT Configuration
-JWT_SECRET=your_super_secret_jwt_key_here_change_in_production
-JWT_EXPIRES_IN=24h
-
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-
-# CORS Configuration
-FRONTEND_URL=http://localhost:5500
-```
-
-### Base de Datos
-
-1. Asegúrate de tener MySQL instalado y corriendo
-2. Ejecuta el script `mysql.sql` para crear la base de datos y las tablas:
-   ```bash
-   mysql -u root -p < mysql.sql
-   ```
+1. Al iniciar, intenta conectar con valores por defecto (localhost, root sin contraseña)
+2. Si falla, solicita credenciales por terminal
+3. Verifica si la base de datos existe
+4. Si no existe, ejecuta automáticamente el script `mysql.sql`
 
 ## Instalación y Ejecución
 
@@ -251,62 +139,52 @@ FRONTEND_URL=http://localhost:5500
    npm install
    ```
 
-3. Configura las variables de entorno (ver sección anterior)
-
-4. Ejecuta el servidor en modo desarrollo:
-   ```bash
-   npm run dev
-   ```
-   O en modo producción:
+3. Ejecuta el servidor:
    ```bash
    npm start
    ```
 
-El servidor estará corriendo en `http://localhost:3000`
+El servidor estará corriendo en `http://localhost:3001`
 
 ### Frontend
 
-El frontend se sirve automáticamente desde el backend. Puedes acceder a la aplicación en `http://localhost:3000`
+El frontend se sirve automáticamente desde el backend. Puedes acceder a la aplicación en `http://localhost:3001`
 
 ## Características Principales
 
-### Autenticación y Seguridad
-- Registro de usuarios con validación
-- Inicio de sesión con JWT
-- Encriptación de contraseñas con bcrypt
-- Middleware de autenticación
-- Manejo seguro de errores
-
 ### Gestión de Tareas
-- CRUD completo de tareas
+- CRUD completo de tareas sin autenticación
 - Filtros (Todas, Pendientes, Completadas)
-- Asignación de tareas a usuarios
 - Actualización de estado (completada/pendiente)
 - Timestamps de creación y actualización
+- Interfaz limpia y directa
 
 ### Interfaz de Usuario
-- Diseño moderno con Glassmorphism
-- Responsive design
+- Diseño moderno y responsivo
 - Animaciones y transiciones suaves
 - Toast notifications para feedback
 - Validación de formularios
 - Interacciones dinámicas sin recargar página
 
+### Características Técnicas
+- Auto-configuración de base de datos
+- Conexión segura a MySQL
+- Manejo centralizado de errores
+- API RESTful bien estructurada
+- Código modular y mantenible
+
 ## Seguridad Implementada
 
 ### Backend
-- Encriptación de contraseñas con bcrypt (salt rounds: 10)
-- Tokens JWT con expiración configurable
-- Middleware de autenticación para rutas protegidas
 - Validación de entrada en todos los endpoints
 - Manejo de errores sin exponer información sensible
 - Configuración CORS segura
+- Conexión segura a base de datos
 
 ### Frontend
 - Sanitización de HTML para prevenir XSS
 - Validación de formularios en el cliente
-- Almacenamiento seguro de tokens en localStorage
-- Manejo seguro de credenciales
+- Manejo seguro de credenciales de base de datos
 
 ## Mejores Prácticas
 
@@ -321,26 +199,12 @@ El frontend se sirve automáticamente desde el backend. Puedes acceder a la apli
 
 ## Despliegue
 
-### Local
-Sigue los pasos de instalación mencionados anteriormente.
+Para una guía completa de despliegue, incluyendo configuración local y producción, consulta el archivo [DESPLEGUE.md](./DESPLEGUE.md).
 
-### Producción (Opcional)
-1. Configura las variables de entorno para producción
-2. Cambia `NODE_ENV=production`
-3. Usa un secreto JWT seguro
-4. Configura HTTPS
-5. Considera usar PM2 para gestión de procesos
-6. Implementa una base de datos en la nube (AWS RDS, etc.)
+### Local Rápido
+1. Instala Node.js y MySQL
+2. Clona el repositorio
+3. Ejecuta `npm install` en la carpeta backend
+4. Ejecuta `npm start`
+5. Accede a `http://localhost:3001`
 
-## Contribuciones
-
-Este proyecto fue desarrollado como parte de un reto full stack para demostrar competencias en:
-- Desarrollo backend con Node.js/Express
-- Diseño y desarrollo frontend
-- Autenticación y seguridad
-- Gestión de bases de datos
-- Despliegue de aplicaciones web
-
-## Licencia
-
-Este proyecto es para fines educativos y de demostración.
