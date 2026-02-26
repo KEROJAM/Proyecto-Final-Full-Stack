@@ -44,6 +44,8 @@ app.use((req, res, next) => {
 
 require('./routes/index')(app);
 
+app.use(express.static(path.join(__dirname, '../frontend')));
+
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Servidor funcionando' });
 });
@@ -56,15 +58,22 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-app.listen(PORT, async () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-
-    try {
-        const pool = await createConnectionPool();
-        const connection = await pool.getConnection();
-        console.log('Conectado a MySQL');
-        connection.release();
-    } catch (error) {
-        console.error('Error al conectar a MySQL:', error.message);
-    }
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
+
+async function startServer() {
+    try {
+        const pool = await createConnectionPool;
+        console.log('Conectado a MySQL');
+        
+        app.listen(PORT, () => {
+            console.log(`Servidor corriendo en http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Error al iniciar el servidor:', error.message);
+        process.exit(1);
+    }
+}
+
+startServer();

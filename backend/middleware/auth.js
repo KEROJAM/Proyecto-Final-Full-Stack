@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         
@@ -15,8 +16,13 @@ const authMiddleware = (req, res, next) => {
             : authHeader;
 
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.userId = decoded.userId;
-        req.username = decoded.username;
+        
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(401).json({ error: 'Usuario no encontrado' });
+        }
+        
+        req.user = { id: user.id, username: user.username, email: user.email, avatar: user.avatar };
         
         next();
     } catch (error) {

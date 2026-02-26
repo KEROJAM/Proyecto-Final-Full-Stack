@@ -1,267 +1,357 @@
-const API_URL = 'http://localhost:3001/api';
+const API_URL = 'http://localhost:5000/api';
 
-// Elementos del DOM
-const appSection = document.getElementById('appSection');
-const taskForm = document.getElementById('taskForm');
-const tasksList = document.getElementById('tasksList');
-const toast = document.getElementById('toast');
-const toastMessage = document.getElementById('toastMessage');
+let currentUser = null;
+let currentAuthTab = 'login';
+let selectedRating = 0;
+let selectedTags = [];
+let allTags = [];
 
-// Variables globales
-let currentTasks = [];
-let currentFilter = 'all';
+async function apiRequest(endpoint, options = {}) {
+    const token = localStorage.getItem('token');
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers
+    };
 
-// Inicialización
-document.addEventListener('DOMContentLoaded', () => {
-    setupEventListeners();
-    showApp();
-    loadTasks();
-});
-
-// Configurar event listeners
-function setupEventListeners() {
-    // Formularios
-    taskForm.addEventListener('submit', handleTaskSubmit);
-
-    // Filtros
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            setFilter(e.target.dataset.filter);
-        });
-    });
-}
-
-
-// Manejar envío de tarea
-async function handleTaskSubmit(e) {
-    e.preventDefault();
-
-    const title = document.getElementById('taskTitle').value;
-    const description = document.getElementById('taskDescription').value;
-
-    try {
-        const response = await fetch(`${API_URL}/tasks`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ title, description })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, 'success');
-            taskForm.reset();
-            loadTasks();
-        } else {
-            showToast(data.error || 'Error al crear tarea', 'error');
-        }
-    } catch (error) {
-        showToast('Error de conexión', 'error');
-        console.error('Error al crear tarea:', error);
-    }
-}
-
-// Cargar tareas
-async function loadTasks() {
-    try {
-        const response = await fetch(`${API_URL}/tasks/my-tasks`);
-
-        const tasks = await response.json();
-
-        if (response.ok) {
-            currentTasks = tasks;
-            renderTasks();
-        } else {
-            showToast('Error al cargar tareas', 'error');
-        }
-    } catch (error) {
-        showToast('Error de conexión', 'error');
-        console.error('Error al cargar tareas:', error);
-    }
-}
-
-// Renderizar tareas
-function renderTasks() {
-    const filteredTasks = filterTasks(currentTasks, currentFilter);
-
-    if (filteredTasks.length === 0) {
-        tasksList.innerHTML = '<p class="loading">No hay tareas para mostrar</p>';
-        return;
-    }
-
-    tasksList.innerHTML = filteredTasks.map(task => `
-        <div class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
-            <div class="task-header">
-                <div>
-                    <h3 class="task-title">${escapeHtml(task.title)}</h3>
-                    ${task.description ? `<p class="task-description">${escapeHtml(task.description)}</p>` : ''}
-                </div>
-            </div>
-            <div class="task-meta">
-                <span>${formatDate(task.created_at)}</span>
-                <div class="task-actions">
-                    <button class="task-btn btn-complete" onclick="toggleTask(${task.id}, ${!task.completed})">
-                        ${task.completed ? 'Pendiente' : 'Completar'}
-                    </button>
-                    <button class="task-btn btn-edit" onclick="editTask(${task.id})">
-                        Editar
-                    </button>
-                    <button class="task-btn btn-delete" onclick="deleteTask(${task.id})">
-                        Eliminar
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Filtrar tareas
-function filterTasks(tasks, filter) {
-    switch (filter) {
-        case 'completed':
-            return tasks.filter(task => task.completed);
-        case 'pending':
-            return tasks.filter(task => !task.completed);
-        default:
-            return tasks;
-    }
-}
-
-// Establecer filtro
-function setFilter(filter) {
-    currentFilter = filter;
-
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.remove('active');
+    const response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers
     });
 
-    document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
-    renderTasks();
-}
-
-// Toggle tarea (completar/pendiente)
-async function toggleTask(id, completed) {
-    try {
-        const response = await fetch(`${API_URL}/tasks/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ completed })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, 'success');
-            loadTasks();
-        } else {
-            showToast(data.error || 'Error al actualizar tarea', 'error');
-        }
-    } catch (error) {
-        showToast('Error de conexión', 'error');
-        console.error('Error al actualizar tarea:', error);
+    const data = await response.json();
+    
+    if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong');
     }
+
+    return data;
 }
 
-// Editar tarea
-function editTask(id) {
-    const task = currentTasks.find(t => t.id === id);
-    if (!task) return;
-
-    const newTitle = prompt('Editar título:', task.title);
-    if (!newTitle || newTitle === task.title) return;
-
-    const newDescription = prompt('Editar descripción:', task.description || '');
-
-    updateTask(id, newTitle, newDescription, task.completed);
-}
-
-// Actualizar tarea
-async function updateTask(id, title, description, completed) {
-    try {
-        const response = await fetch(`${API_URL}/tasks/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ title, description, completed })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, 'success');
-            loadTasks();
-        } else {
-            showToast(data.error || 'Error al actualizar tarea', 'error');
-        }
-    } catch (error) {
-        showToast('Error de conexión', 'error');
-        console.error('Error al actualizar tarea:', error);
-    }
-}
-
-// Eliminar tarea
-async function deleteTask(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta tarea?')) return;
-
-    try {
-        const response = await fetch(`${API_URL}/tasks/${id}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, 'success');
-            loadTasks();
-        } else {
-            showToast(data.error || 'Error al eliminar tarea', 'error');
-        }
-    } catch (error) {
-        showToast('Error de conexión', 'error');
-        console.error('Error al eliminar tarea:', error);
-    }
-}
-
-// Mostrar aplicación
-function showApp() {
-    appSection.style.display = 'block';
-}
-
-// Mostrar toast
-function showToast(message, type = 'info') {
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
     toastMessage.textContent = message;
-    toast.className = `toast ${type}`;
-    toast.classList.add('show');
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-// Utilidades
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    toast.className = `toast ${type} show`;
+    setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 function formatDate(dateString) {
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Ahora mismo';
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHours < 24) return `Hace ${diffHours} h`;
-    if (diffDays < 7) return `Hace ${diffDays} días`;
-
-    return date.toLocaleDateString('es-ES');
+    const diff = now - date;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString();
 }
+
+function getMediaEmoji(type) {
+    const emojis = {
+        book: '📚',
+        movie: '🎬',
+        tv: '📺',
+        music: '🎵',
+        game: '🎮'
+    };
+    return emojis[type] || '📌';
+}
+
+function getInitial(username) {
+    return username ? username.charAt(0).toUpperCase() : 'U';
+}
+
+function renderStars(rating) {
+    if (!rating) return '';
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+}
+
+function renderReviewCard(review) {
+    const tags = review.tags ? review.tags.split(',') : [];
+    const reactions = review.reactions || { heart: 0, laughing: 0, crying: 0, surprised: 0 };
+    const userReactions = review.userReactions || [];
+    
+    const tagsHtml = tags.map(tag => `<span class="review-tag ${tag.trim()}">#${tag.trim()}</span>`).join('');
+    
+    return `
+        <div class="review-card" data-id="${review.id}">
+            <div class="review-header">
+                <div class="review-user">
+                    <div class="user-avatar-small">${getInitial(review.username)}</div>
+                    <span class="username">${review.username}</span>
+                    <span class="review-date">${formatDate(review.created_at)}</span>
+                </div>
+                <span class="media-type-badge ${review.media_type}">${getMediaEmoji(review.media_type)} ${review.media_type}</span>
+            </div>
+            <div class="media-title">${review.media_title}</div>
+            ${review.rating ? `<div class="rating">${renderStars(review.rating)}</div>` : ''}
+            <div class="review-text">"${review.review_text}"</div>
+            ${tagsHtml ? `<div class="review-tags">${tagsHtml}</div>` : ''}
+            <div class="review-reactions">
+                <button class="reaction-btn ${userReactions.includes('heart') ? 'active heart' : ''}" data-emoji="heart">
+                    ❤️ <span>${reactions.heart || 0}</span>
+                </button>
+                <button class="reaction-btn ${userReactions.includes('laughing') ? 'active laughing' : ''}" data-emoji="laughing">
+                    😂 <span>${reactions.laughing || 0}</span>
+                </button>
+                <button class="reaction-btn ${userReactions.includes('crying') ? 'active crying' : ''}" data-emoji="crying">
+                    😭 <span>${reactions.crying || 0}</span>
+                </button>
+                <button class="reaction-btn ${userReactions.includes('surprised') ? 'active surprised' : ''}" data-emoji="surprised">
+                    😲 <span>${reactions.surprised || 0}</span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function loadReviews() {
+    const feed = document.getElementById('feed');
+    const loading = document.getElementById('loading');
+    
+    try {
+        const reviews = await apiRequest('/reviews/random?limit=20');
+        
+        if (reviews.length === 0) {
+            feed.innerHTML = '<div class="loading">No reviews yet. Be the first to add one!</div>';
+            return;
+        }
+        
+        feed.innerHTML = reviews.map(renderReviewCard).join('');
+        
+        document.querySelectorAll('.reaction-btn').forEach(btn => {
+            btn.addEventListener('click', handleReaction);
+        });
+    } catch (error) {
+        console.error('Error loading reviews:', error);
+        feed.innerHTML = '<div class="loading">Failed to load reviews</div>';
+    }
+}
+
+async function handleReaction(e) {
+    const btn = e.currentTarget;
+    const emoji = btn.dataset.emoji;
+    const card = btn.closest('.review-card');
+    const reviewId = card.dataset.id;
+
+    if (!currentUser) {
+        showAuthModal();
+        return;
+    }
+
+    try {
+        const result = await apiRequest(`/reviews/${reviewId}/reactions`, {
+            method: 'POST',
+            body: JSON.stringify({ emoji_type: emoji })
+        });
+
+        btn.classList.toggle('active', result.isAdded);
+        btn.classList.toggle(emoji, result.isAdded);
+        btn.querySelector('span').textContent = result.reactions[emoji] || 0;
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+function showAuthModal() {
+    document.getElementById('authModal').classList.add('show');
+}
+
+function hideAuthModal() {
+    document.getElementById('authModal').classList.remove('show');
+}
+
+function showReviewModal() {
+    document.getElementById('reviewModal').classList.add('show');
+    loadTags();
+}
+
+function hideReviewModal() {
+    document.getElementById('reviewModal').classList.remove('show');
+    document.getElementById('reviewForm').reset();
+    selectedRating = 0;
+    selectedTags = [];
+    document.querySelectorAll('.star-rating span').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tag-option').forEach(t => t.classList.remove('selected'));
+    document.getElementById('charCount').textContent = '0';
+}
+
+async function loadTags() {
+    try {
+        allTags = await apiRequest('/reviews/tags');
+        const container = document.getElementById('tagsContainer');
+        container.innerHTML = allTags.map(tag => 
+            `<span class="tag-option" data-id="${tag.id}">#${tag.name}</span>`
+        ).join('');
+
+        container.querySelectorAll('.tag-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                const tagId = parseInt(opt.dataset.id);
+                opt.classList.toggle('selected');
+                if (selectedTags.includes(tagId)) {
+                    selectedTags = selectedTags.filter(t => t !== tagId);
+                } else {
+                    selectedTags.push(tagId);
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
+async function handleAuth(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const submitBtn = document.getElementById('authSubmit');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = currentAuthTab === 'login' ? 'Logging in...' : 'Signing up...';
+
+    try {
+        const endpoint = currentAuthTab === 'login' ? '/auth/login' : '/auth/register';
+        const data = await apiRequest(endpoint, {
+            method: 'POST',
+            body: JSON.stringify({ username, email, password })
+        });
+
+        if (currentAuthTab === 'login') {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            currentUser = data.user;
+            updateUI();
+            showToast('Welcome back!');
+        } else {
+            showToast('Account created! Please log in.', 'success');
+            switchAuthTab('login');
+        }
+        hideAuthModal();
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = currentAuthTab === 'login' ? 'Log In' : 'Sign Up';
+    }
+}
+
+function switchAuthTab(tab) {
+    currentAuthTab = tab;
+    document.querySelectorAll('.auth-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    document.getElementById('email').parentElement.style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('authSubmit').textContent = tab === 'login' ? 'Log In' : 'Sign Up';
+}
+
+function updateUI() {
+    const loginBtn = document.getElementById('loginBtn');
+    const addReviewBtn = document.getElementById('addReviewBtn');
+    const userMenu = document.getElementById('userMenu');
+    const userInitial = document.getElementById('userInitial');
+
+    if (currentUser) {
+        loginBtn.classList.add('hidden');
+        addReviewBtn.classList.remove('hidden');
+        userMenu.classList.remove('hidden');
+        userInitial.textContent = getInitial(currentUser.username);
+    } else {
+        loginBtn.classList.remove('hidden');
+        addReviewBtn.classList.add('hidden');
+        userMenu.classList.add('hidden');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    currentUser = null;
+    updateUI();
+    showToast('Logged out successfully');
+    loadReviews();
+}
+
+async function handleReviewSubmit(e) {
+    e.preventDefault();
+    
+    const mediaType = document.getElementById('mediaType').value;
+    const mediaTitle = document.getElementById('mediaTitle').value;
+    const reviewText = document.getElementById('reviewText').value;
+    const rating = selectedRating || null;
+
+    try {
+        await apiRequest('/reviews', {
+            method: 'POST',
+            body: JSON.stringify({
+                media_type: mediaType,
+                media_title: mediaTitle,
+                review_text: reviewText,
+                rating,
+                tags: selectedTags
+            })
+        });
+
+        showToast('Review posted!');
+        hideReviewModal();
+        loadReviews();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+    }
+    updateUI();
+    loadReviews();
+
+    document.getElementById('loginBtn').addEventListener('click', showAuthModal);
+    document.getElementById('closeAuthModal').addEventListener('click', hideAuthModal);
+    document.getElementById('authForm').addEventListener('submit', handleAuth);
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchAuthTab(tab.dataset.tab));
+    });
+
+    document.getElementById('addReviewBtn').addEventListener('click', showReviewModal);
+    document.getElementById('closeReviewModal').addEventListener('click', hideReviewModal);
+    document.getElementById('reviewForm').addEventListener('submit', handleReviewSubmit);
+
+    document.querySelectorAll('.star-rating span').forEach(star => {
+        star.addEventListener('click', () => {
+            selectedRating = parseInt(star.dataset.value);
+            document.querySelectorAll('.star-rating span').forEach((s, i) => {
+                s.classList.toggle('active', i < selectedRating);
+            });
+        });
+    });
+
+    document.getElementById('reviewText').addEventListener('input', (e) => {
+        document.getElementById('charCount').textContent = e.target.value.length;
+    });
+
+    document.getElementById('userAvatar').addEventListener('click', () => {
+        document.getElementById('dropdownMenu').classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.user-menu')) {
+            document.getElementById('dropdownMenu').classList.remove('show');
+        }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    document.getElementById('authModal').addEventListener('click', (e) => {
+        if (e.target.id === 'authModal') hideAuthModal();
+    });
+
+    document.getElementById('reviewModal').addEventListener('click', (e) => {
+        if (e.target.id === 'reviewModal') hideReviewModal();
+    });
+});

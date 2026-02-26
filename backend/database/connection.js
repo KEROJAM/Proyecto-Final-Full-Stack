@@ -116,7 +116,7 @@ async function setupDatabase(connection, config) {
       const path = require('path');
       
       try {
-        const sqlPath = path.join(__dirname, '../../mysql.sql');
+        const sqlPath = path.join(__dirname, '../../../database.sql');
         const sqlContent = await fs.readFile(sqlPath, 'utf8');
         
         // Separar las sentencias SQL y ejecutarlas
@@ -155,4 +155,4 @@ async function setupDatabase(connection, config) {
   }
 }
 
-module.exports = createConnectionPool;
+module.exports = createConnectionPool();
