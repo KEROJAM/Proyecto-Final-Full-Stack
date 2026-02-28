@@ -161,13 +161,7 @@ async function createConnectionPool() {
       console.log('Creando tablas...');
       const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s);
       for (const stmt of statements) {
-  config.waitForConnections = true;
-  config.connectionLimit = 10;
-  config.queueLimit = 0;
-
-  rl.close();
-
-  try {
+        try {
           await dbConn.query(stmt);
         } catch (e) {
           console.warn('Advertencia:', e.message);
@@ -177,6 +171,12 @@ async function createConnectionPool() {
     } else {
       console.log('Las tablas ya existen');
     }
+    
+    config.waitForConnections = true;
+    config.connectionLimit = 10;
+    config.queueLimit = 0;
+
+    rl.close();
     
     dbConn.release();
     return pool;
