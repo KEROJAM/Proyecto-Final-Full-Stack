@@ -5,11 +5,11 @@ const Review = {
         return await createConnectionPool;
     },
 
-    async create(userId, mediaType, mediaTitle, reviewText, rating = null) {
+    async create(userId, mediaType, mediaTitle, reviewText, rating = null, cover = null) {
         const db = await this.getDb();
         const [result] = await db.execute(
-            'INSERT INTO reviews (user_id, media_type, media_title, review_text, rating) VALUES (?, ?, ?, ?, ?)',
-            [userId, mediaType, mediaTitle, reviewText, rating]
+            'INSERT INTO reviews (user_id, media_type, media_title, cover, review_text, rating) VALUES (?, ?, ?, ?, ?, ?)',
+            [userId, mediaType, mediaTitle, cover, reviewText, rating]
         );
         return result.insertId;
     },
@@ -17,7 +17,7 @@ const Review = {
     async findById(id) {
         const db = await this.getDb();
         const [rows] = await db.execute(`
-            SELECT r.*, u.username, u.avatar,
+            SELECT r.*, u.username, u.name, u.avatar,
             GROUP_CONCAT(DISTINCT rt.name) as tags,
             GROUP_CONCAT(DISTINCT CONCAT(r2.emoji_type, ':', r2.user_id)) as reactions
             FROM reviews r
@@ -34,7 +34,7 @@ const Review = {
     async findAll(limit = 50, offset = 0) {
         const db = await this.getDb();
         const [rows] = await db.execute(`
-            SELECT r.*, u.username, u.avatar,
+            SELECT r.*, u.username, u.name, u.avatar,
             GROUP_CONCAT(DISTINCT rt.name) as tags
             FROM reviews r
             JOIN users u ON r.user_id = u.id
@@ -50,7 +50,7 @@ const Review = {
     async findRandom(limit = 20) {
         const db = await this.getDb();
         const [rows] = await db.execute(`
-            SELECT r.*, u.username, u.avatar,
+            SELECT r.*, u.username, u.name, u.avatar,
             GROUP_CONCAT(DISTINCT rt.name) as tags
             FROM reviews r
             JOIN users u ON r.user_id = u.id
@@ -66,7 +66,7 @@ const Review = {
     async findByUserId(userId, limit = 50, offset = 0) {
         const db = await this.getDb();
         const [rows] = await db.execute(`
-            SELECT r.*, u.username, u.avatar,
+            SELECT r.*, u.username, u.name, u.avatar,
             GROUP_CONCAT(DISTINCT rt.name) as tags
             FROM reviews r
             JOIN users u ON r.user_id = u.id
@@ -83,7 +83,7 @@ const Review = {
     async findByMediaType(mediaType, limit = 50, offset = 0) {
         const db = await this.getDb();
         const [rows] = await db.execute(`
-            SELECT r.*, u.username, u.avatar,
+            SELECT r.*, u.username, u.name, u.avatar,
             GROUP_CONCAT(DISTINCT rt.name) as tags
             FROM reviews r
             JOIN users u ON r.user_id = u.id
@@ -104,6 +104,7 @@ const Review = {
         
         if (data.media_type !== undefined) { fields.push('media_type = ?'); values.push(data.media_type); }
         if (data.media_title !== undefined) { fields.push('media_title = ?'); values.push(data.media_title); }
+        if (data.cover !== undefined) { fields.push('cover = ?'); values.push(data.cover); }
         if (data.review_text !== undefined) { fields.push('review_text = ?'); values.push(data.review_text); }
         if (data.rating !== undefined) { fields.push('rating = ?'); values.push(data.rating); }
         

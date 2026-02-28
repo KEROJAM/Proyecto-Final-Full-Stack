@@ -53,6 +53,7 @@ function getMediaEmoji(type) {
         book: '📚',
         movie: '🎬',
         tv: '📺',
+        anime: '🎌',
         music: '🎵',
         game: '🎮'
     };
@@ -72,37 +73,52 @@ function renderReviewCard(review) {
     const tags = review.tags ? review.tags.split(',') : [];
     const reactions = review.reactions || { heart: 0, laughing: 0, crying: 0, surprised: 0 };
     const userReactions = review.userReactions || [];
+    const displayName = review.name || review.username;
     
     const tagsHtml = tags.map(tag => `<span class="review-tag ${tag.trim()}">#${tag.trim()}</span>`).join('');
     
+    const coverHtml = review.cover ? `
+        <div class="review-cover">
+            <img src="/api/proxy-image?url=${encodeURIComponent(review.cover)}" alt="${review.media_title}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23333%22 width=%22100%22 height=%22150%22/><text fill=%22%23666%22 font-size=%2212%22 x=%2250%22 y=%22100%22 text-anchor=%22middle%22>No image</text></svg>'">
+        </div>
+    ` : '';
+    
     return `
         <div class="review-card" data-id="${review.id}">
-            <div class="review-header">
-                <div class="review-user">
-                    <div class="user-avatar-small">${getInitial(review.username)}</div>
-                    <span class="username">${review.username}</span>
-                    <span class="review-date">${formatDate(review.created_at)}</span>
+            <div class="review-content">
+                <div class="review-header">
+                    <div class="review-user">
+                        <div class="user-avatar-small">${getInitial(review.username)}</div>
+                        <div class="user-info">
+                            <span class="username">${review.username}</span>
+                            <span class="user-name">${displayName}</span>
+                        </div>
+                        <span class="review-date">${formatDate(review.created_at)}</span>
+                    </div>
                 </div>
-                <span class="media-type-badge ${review.media_type}">${getMediaEmoji(review.media_type)} ${review.media_type}</span>
+                <div class="media-title">${review.media_title}</div>
+                <div class="media-meta">
+                    <span class="media-type-badge ${review.media_type}">${getMediaEmoji(review.media_type)} ${review.media_type}</span>
+                    ${tagsHtml ? `<div class="review-tags">${tagsHtml}</div>` : ''}
+                </div>
+                ${review.rating ? `<div class="rating">${renderStars(review.rating)}</div>` : ''}
+                <div class="review-text">"${review.review_text}"</div>
+                <div class="review-reactions">
+                    <button class="reaction-btn ${userReactions.includes('heart') ? 'active heart' : ''}" data-emoji="heart">
+                        ❤️ <span>${reactions.heart || 0}</span>
+                    </button>
+                    <button class="reaction-btn ${userReactions.includes('laughing') ? 'active laughing' : ''}" data-emoji="laughing">
+                        😂 <span>${reactions.laughing || 0}</span>
+                    </button>
+                    <button class="reaction-btn ${userReactions.includes('crying') ? 'active crying' : ''}" data-emoji="crying">
+                        😭 <span>${reactions.crying || 0}</span>
+                    </button>
+                    <button class="reaction-btn ${userReactions.includes('surprised') ? 'active surprised' : ''}" data-emoji="surprised">
+                        😲 <span>${reactions.surprised || 0}</span>
+                    </button>
+                </div>
             </div>
-            <div class="media-title">${review.media_title}</div>
-            ${review.rating ? `<div class="rating">${renderStars(review.rating)}</div>` : ''}
-            <div class="review-text">"${review.review_text}"</div>
-            ${tagsHtml ? `<div class="review-tags">${tagsHtml}</div>` : ''}
-            <div class="review-reactions">
-                <button class="reaction-btn ${userReactions.includes('heart') ? 'active heart' : ''}" data-emoji="heart">
-                    ❤️ <span>${reactions.heart || 0}</span>
-                </button>
-                <button class="reaction-btn ${userReactions.includes('laughing') ? 'active laughing' : ''}" data-emoji="laughing">
-                    😂 <span>${reactions.laughing || 0}</span>
-                </button>
-                <button class="reaction-btn ${userReactions.includes('crying') ? 'active crying' : ''}" data-emoji="crying">
-                    😭 <span>${reactions.crying || 0}</span>
-                </button>
-                <button class="reaction-btn ${userReactions.includes('surprised') ? 'active surprised' : ''}" data-emoji="surprised">
-                    😲 <span>${reactions.surprised || 0}</span>
-                </button>
-            </div>
+            ${coverHtml}
         </div>
     `;
 }
@@ -280,6 +296,7 @@ async function handleReviewSubmit(e) {
     
     const mediaType = document.getElementById('mediaType').value;
     const mediaTitle = document.getElementById('mediaTitle').value;
+    const coverUrl = document.getElementById('coverUrl').value;
     const reviewText = document.getElementById('reviewText').value;
     const rating = selectedRating || null;
 
@@ -289,6 +306,7 @@ async function handleReviewSubmit(e) {
             body: JSON.stringify({
                 media_type: mediaType,
                 media_title: mediaTitle,
+                cover: coverUrl || null,
                 review_text: reviewText,
                 rating,
                 tags: selectedTags

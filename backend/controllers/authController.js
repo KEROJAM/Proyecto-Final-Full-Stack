@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_cha
 const authController = {
     async register(req, res) {
         try {
-            const { username, email, password } = req.body;
+            const { username, name, email, password } = req.body;
 
             if (!username || !email || !password) {
                 return res.status(400).json({ error: 'Todos los campos son requeridos' });
@@ -24,14 +24,14 @@ const authController = {
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
-            const userId = await User.create(username, email, hashedPassword);
+            const userId = await User.create(username, name || null, email, hashedPassword);
 
             const token = jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: '24h' });
 
             res.status(201).json({
                 message: 'Usuario creado exitosamente',
                 token,
-                user: { id: userId, username, email }
+                user: { id: userId, username, name, email }
             });
         } catch (error) {
             console.error('Error en register:', error);
@@ -62,7 +62,7 @@ const authController = {
             res.json({
                 message: 'Login exitoso',
                 token,
-                user: { id: user.id, username: user.username, email: user.email, avatar: user.avatar }
+                user: { id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar }
             });
         } catch (error) {
             console.error('Error en login:', error);

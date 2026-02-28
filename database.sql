@@ -6,6 +6,7 @@ USE one_sentence_reviews;
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(100) DEFAULT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     avatar VARCHAR(255) DEFAULT NULL,
@@ -17,8 +18,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    media_type ENUM('book', 'movie', 'tv', 'music', 'game') NOT NULL,
+    media_type ENUM('book', 'movie', 'tv', 'anime', 'music', 'game') NOT NULL,
     media_title VARCHAR(255) NOT NULL,
+    cover VARCHAR(500) DEFAULT NULL,
     review_text VARCHAR(200) NOT NULL,
     rating INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -72,23 +74,27 @@ INSERT INTO review_tags (name) VALUES
     ('mind-blowing')
 ON DUPLICATE KEY UPDATE name = name;
 
--- Insertar usuario de prueba (password: password123)
-INSERT INTO users (username, email, password) VALUES 
-    ('demo', 'demo@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
+-- Insertar usuarios de prueba (password: password123)
+INSERT INTO users (username, name, email, password) VALUES 
+    ('demo', 'Juan Pérez', 'demo@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
+    ('maria_dev', 'María García', 'maria@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
+    ('david_tech', 'david López', 'david@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
+    ('ana_arts', 'Ana Martínez', 'ana@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
+    ('luis_gamer', 'Luis Rodríguez', 'luis@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
 ON DUPLICATE KEY UPDATE username = username;
 
 -- Insertar reviews de ejemplo
-INSERT INTO reviews (user_id, media_type, media_title, review_text, rating) VALUES 
-    (1, 'movie', 'Dune: Part Two', 'Visually stunning, but I needed 3 hours to recover emotionally.', 5),
-    (1, 'book', 'Atomic Habits', 'Good concepts, but I skimmed 80% of it.', 3),
-    (1, 'game', 'Hades', 'Finally beat it after 200 deaths, worth every one.', 5),
-    (1, 'tv', 'Breaking Bad', 'Started watching at 11pm, finished season 1 at 3am. No regrets.', 5),
-    (1, 'music', 'Random Access Memories', 'Made me feel like I was in a sci-fi movie soundtrack.', 4),
-    (1, 'book', 'Project Hail Mary', 'The friendliest science book ever written.', 5),
-    (1, 'movie', 'Everything Everywhere All At Once', 'I still do not understand the bagel.', 4),
-    (1, 'tv', 'The Office', 'Watched it during hard times, it literally saved my mental health.', 5),
-    (1, 'game', 'Stardew Valley', 'I have 400 hours and no shame.', 4),
-    (1, 'music', 'Blue Moon', 'Listened to this on repeat for three days straight.', 3);
+INSERT INTO reviews (user_id, media_type, media_title, cover, review_text, rating) VALUES 
+    (1, 'movie', 'Dune: Part Two', 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg', 'Visually stunning, but I needed 3 hours to recover emotionally.', 5),
+    (2, 'book', 'Atomic Habits', 'https://images-na.ssl-images-amazon.com/images/I/81wgcld4wxL.jpg', 'Good concepts, but I skimmed 80% of it.', 3),
+    (3, 'game', 'Hades', 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000042508/box.png', 'Finally beat it after 200 deaths, worth every one.', 5),
+    (4, 'tv', 'Breaking Bad', 'https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg', 'Started watching at 11pm, finished season 1 at 3am. No regrets.', 5),
+    (5, 'music', 'Random Access Memories', 'https://upload.wikimedia.org/wikipedia/en/a/a7/Random_Access_Memories.jpg', 'Made me feel like I was in a sci-fi movie soundtrack.', 4),
+    (2, 'book', 'Project Hail Mary', 'https://images-na.ssl-images-amazon.com/images/I/91vS2Ph2S5L.jpg', 'The friendliest science book ever written.', 5),
+    (3, 'movie', 'Everything Everywhere All At Once', 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg', 'I still do not understand the bagel.', 4),
+    (4, 'tv', 'The Office', 'https://image.tmdb.org/t/p/w500/qWnJzyZhyy74gjpSjIXWmuk0ifX.jpg', 'Watched it during hard times, it literally saved my mental health.', 5),
+    (5, 'game', 'Stardew Valley', 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000037653/box.png', 'I have 400 hours and no shame.', 4),
+    (1, 'music', 'Blue Moon', 'https://upload.wikimedia.org/wikipedia/en/7/71/Blue_Moon_%28Young_Thug_album%29.jpg', 'Listened to this on repeat for three days straight.', 3);
 
 -- Agregar tags a las reviews de ejemplo
 INSERT INTO review_tag_map (review_id, tag_id) VALUES 

@@ -14,6 +14,7 @@ module.exports = (app) => {
     app.get('/api/reviews', reviewController.getAll);
     app.get('/api/reviews/user', authMiddleware, reviewController.getByUser);
     app.get('/api/reviews/:id', reviewController.getById);
+    app.get('/api/reviews/search/cover', reviewController.searchCover);
     app.post('/api/reviews', authMiddleware, reviewController.create);
     app.put('/api/reviews/:id', authMiddleware, reviewController.update);
     app.delete('/api/reviews/:id', authMiddleware, reviewController.delete);

@@ -1,10 +1,11 @@
 const Review = require('../models/Review');
 const Reaction = require('../models/Reaction');
+const coverService = require('../services/coverService');
 
 const reviewController = {
     async create(req, res) {
         try {
-            const { media_type, media_title, review_text, rating, tags } = req.body;
+            const { media_type, media_title, cover, review_text, rating, tags } = req.body;
             const userId = req.user.id;
 
             if (!media_type || !media_title || !review_text) {
@@ -15,7 +16,7 @@ const reviewController = {
                 return res.status(400).json({ error: 'Review must be 200 characters or less' });
             }
 
-            const validMediaTypes = ['book', 'movie', 'tv', 'music', 'game'];
+            const validMediaTypes = ['book', 'movie', 'tv', 'music', 'game', 'anime'];
             if (!validMediaTypes.includes(media_type)) {
                 return res.status(400).json({ error: 'Invalid media type' });
             }
@@ -24,7 +25,19 @@ const reviewController = {
                 return res.status(400).json({ error: 'Rating must be between 1 and 5' });
             }
 
-            const reviewId = await Review.create(userId, media_type, media_title, review_text, rating || null);
+            let coverUrl = cover || null;
+            
+            if (!coverUrl) {
+                console.log(`Searching cover for: ${media_title} (${media_type})`);
+                coverUrl = await coverService.searchCover(media_type, media_title);
+                if (coverUrl) {
+                    console.log(`Cover found: ${coverUrl}`);
+                } else {
+                    console.log(`No cover found for: ${media_title}`);
+                }
+            }
+
+            const reviewId = await Review.create(userId, media_type, media_title, review_text, rating || null, coverUrl);
 
             if (tags && Array.isArray(tags) && tags.length > 0) {
                 await Review.setTags(reviewId, tags);
@@ -122,7 +135,7 @@ const reviewController = {
         try {
             const { id } = req.params;
             const userId = req.user.id;
-            const { media_type, media_title, review_text, rating, tags } = req.body;
+            const { media_type, media_title, cover, review_text, rating, tags } = req.body;
 
             const existing = await Review.findById(id);
             if (!existing) {
@@ -137,7 +150,7 @@ const reviewController = {
                 return res.status(400).json({ error: 'Review must be 200 characters or less' });
             }
 
-            await Review.update(id, userId, { media_type, media_title, review_text, rating });
+            await Review.update(id, userId, { media_type, media_title, cover, review_text, rating });
 
             if (tags && Array.isArray(tags)) {
                 await Review.setTags(id, tags);
@@ -179,6 +192,22 @@ const reviewController = {
             res.json(tags);
         } catch (error) {
             console.error('Error fetching tags:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    },
+
+    async searchCover(req, res) {
+        try {
+            const { media_type, title } = req.query;
+            
+            if (!media_type || !title) {
+                return res.status(400).json({ error: 'media_type and title are required' });
+            }
+
+            const cover = await coverService.searchCover(media_type, title);
+            res.json({ cover });
+        } catch (error) {
+            console.error('Error searching cover:', error);
             res.status(500).json({ error: 'Internal server error' });
         }
     }

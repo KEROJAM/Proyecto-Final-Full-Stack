@@ -5,11 +5,11 @@ const User = {
         return await createConnectionPool;
     },
 
-    async create(username, email, password) {
+    async create(username, name, email, password) {
         const db = await this.getDb();
         const [result] = await db.execute(
-            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-            [username, email, password]
+            'INSERT INTO users (username, name, email, password) VALUES (?, ?, ?, ?)',
+            [username, name, email, password]
         );
         return result.insertId;
     },
@@ -22,7 +22,7 @@ const User = {
 
     async findById(id) {
         const db = await this.getDb();
-        const [rows] = await db.execute('SELECT id, username, email, avatar, created_at FROM users WHERE id = ?', [id]);
+        const [rows] = await db.execute('SELECT id, username, name, email, avatar, created_at FROM users WHERE id = ?', [id]);
         return rows[0];
     },
 
