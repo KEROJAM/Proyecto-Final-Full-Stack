@@ -1,0 +1,13 @@
+{
+  "name": "one-sentence-reviews",
+  "version": "1.0.0",
+  "description": "One Sentence Reviews - Share reviews in a single sentence",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "install:all": "cd backend && npm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
