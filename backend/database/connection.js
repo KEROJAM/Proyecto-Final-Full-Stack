@@ -3,6 +3,27 @@ require('dotenv').config();
 
 let pool;
 
+const rl = require('readline').createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+function pregunta(prompt) {
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => resolve(answer.trim()));
+  });
+}
+
+async function getDbCredentials() {
+  const config = {
+    host: process.env.DB_HOST || await pregunta('Servidor de MySQL (localhost): ') || 'localhost',
+    user: process.env.DB_USER || await pregunta('Usuario de MySQL: '),
+    password: process.env.DB_PASSWORD || await pregunta('Contraseña de MySQL: '),
+    database: process.env.DB_NAME || await pregunta('Nombre de la base de datos (one_sentence_reviews): ') || 'one_sentence_reviews'
+  };
+  return config;
+}
+
 const CREATE_TABLES_SQL = `
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -102,15 +123,7 @@ INSERT IGNORE INTO review_tag_map (review_id, tag_id) VALUES
 async function createConnectionPool() {
   if (pool) return pool;
 
-  const config = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'one_sentence_reviews',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-  };
+  const config = await getDbCredentials();
 
   try {
     // Primero conectar SIN base de datos
@@ -148,7 +161,13 @@ async function createConnectionPool() {
       console.log('Creando tablas...');
       const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s);
       for (const stmt of statements) {
-        try {
+  config.waitForConnections = true;
+  config.connectionLimit = 10;
+  config.queueLimit = 0;
+
+  rl.close();
+
+  try {
           await dbConn.query(stmt);
         } catch (e) {
           console.warn('Advertencia:', e.message);
