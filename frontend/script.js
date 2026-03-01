@@ -79,47 +79,49 @@ function renderReviewCard(review) {
     
     const coverHtml = review.cover ? `
         <div class="review-cover">
-            <img src="/api/proxy-image?url=${encodeURIComponent(review.cover)}" alt="${review.media_title}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23333%22 width=%22100%22 height=%22150%22/><text fill=%22%23666%22 font-size=%2212%22 x=%2250%22 y=%22100%22 text-anchor=%22middle%22>No image</text></svg>'">
+            <img src="/api/proxy-image?url=${encodeURIComponent(review.cover)}" alt="${review.media_title}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23222%22 width=%22100%22 height=%22150%22/><text fill=%22%23444%22 font-size=%2210%22 x=%2250%22 y=%22100%22 text-anchor=%22middle%22>NO COVER</text></svg>'">
         </div>
     ` : '';
     
     return `
-        <div class="review-card" data-id="${review.id}">
-            <div class="review-content">
-                <div class="review-header">
-                    <div class="review-user">
-                        <div class="user-avatar-small">${getInitial(review.username)}</div>
-                        <div class="user-info">
-                            <span class="username">${review.username}</span>
-                            <span class="user-name">${displayName}</span>
+        <article class="review-card" data-id="${review.id}">
+            <div class="review-inner">
+                <div class="review-content">
+                    <div class="review-header">
+                        <div class="review-user">
+                            <div class="user-avatar-small">${getInitial(review.username)}</div>
+                            <div class="user-info">
+                                <span class="username">${review.username}</span>
+                                <span class="user-name">${displayName}</span>
+                            </div>
                         </div>
                         <span class="review-date">${formatDate(review.created_at)}</span>
                     </div>
+                    <div class="media-title">${review.media_title}</div>
+                    <div class="media-meta">
+                        <span class="media-type-badge ${review.media_type}">${getMediaEmoji(review.media_type)} ${review.media_type}</span>
+                        ${tagsHtml ? `<div class="review-tags">${tagsHtml}</div>` : ''}
+                    </div>
+                    ${review.rating ? `<div class="rating">${renderStars(review.rating)}</div>` : ''}
+                    <blockquote class="review-text">${review.review_text}</blockquote>
+                    <div class="review-reactions">
+                        <button class="reaction-btn ${userReactions.includes('heart') ? 'active heart' : ''}" data-emoji="heart">
+                            <span>♥</span> <span>${reactions.heart || 0}</span>
+                        </button>
+                        <button class="reaction-btn ${userReactions.includes('laughing') ? 'active laughing' : ''}" data-emoji="laughing">
+                            <span>😂</span> <span>${reactions.laughing || 0}</span>
+                        </button>
+                        <button class="reaction-btn ${userReactions.includes('crying') ? 'active crying' : ''}" data-emoji="crying">
+                            <span>😭</span> <span>${reactions.crying || 0}</span>
+                        </button>
+                        <button class="reaction-btn ${userReactions.includes('surprised') ? 'active surprised' : ''}" data-emoji="surprised">
+                            <span>😲</span> <span>${reactions.surprised || 0}</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="media-title">${review.media_title}</div>
-                <div class="media-meta">
-                    <span class="media-type-badge ${review.media_type}">${getMediaEmoji(review.media_type)} ${review.media_type}</span>
-                    ${tagsHtml ? `<div class="review-tags">${tagsHtml}</div>` : ''}
-                </div>
-                ${review.rating ? `<div class="rating">${renderStars(review.rating)}</div>` : ''}
-                <div class="review-text">"${review.review_text}"</div>
-                <div class="review-reactions">
-                    <button class="reaction-btn ${userReactions.includes('heart') ? 'active heart' : ''}" data-emoji="heart">
-                        ❤️ <span>${reactions.heart || 0}</span>
-                    </button>
-                    <button class="reaction-btn ${userReactions.includes('laughing') ? 'active laughing' : ''}" data-emoji="laughing">
-                        😂 <span>${reactions.laughing || 0}</span>
-                    </button>
-                    <button class="reaction-btn ${userReactions.includes('crying') ? 'active crying' : ''}" data-emoji="crying">
-                        😭 <span>${reactions.crying || 0}</span>
-                    </button>
-                    <button class="reaction-btn ${userReactions.includes('surprised') ? 'active surprised' : ''}" data-emoji="surprised">
-                        😲 <span>${reactions.surprised || 0}</span>
-                    </button>
-                </div>
+                ${coverHtml}
             </div>
-            ${coverHtml}
-        </div>
+        </article>
     `;
 }
 
@@ -165,7 +167,11 @@ async function handleReaction(e) {
 
         btn.classList.toggle('active', result.isAdded);
         btn.classList.toggle(emoji, result.isAdded);
-        btn.querySelector('span').textContent = result.reactions[emoji] || 0;
+        
+        const countSpan = btn.querySelectorAll('span')[1];
+        if (countSpan) {
+            countSpan.textContent = result.reactions[emoji] || 0;
+        }
     } catch (error) {
         showToast(error.message, 'error');
     }
@@ -227,7 +233,7 @@ async function handleAuth(e) {
     const submitBtn = document.getElementById('authSubmit');
     
     submitBtn.disabled = true;
-    submitBtn.textContent = currentAuthTab === 'login' ? 'Logging in...' : 'Signing up...';
+    submitBtn.textContent = currentAuthTab === 'login' ? 'Entering...' : 'Creating...';
 
     try {
         const endpoint = currentAuthTab === 'login' ? '/auth/login' : '/auth/register';
@@ -251,7 +257,7 @@ async function handleAuth(e) {
         showToast(error.message, 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = currentAuthTab === 'login' ? 'Log In' : 'Sign Up';
+        submitBtn.textContent = currentAuthTab === 'login' ? 'Enter' : 'Create';
     }
 }
 
@@ -261,7 +267,7 @@ function switchAuthTab(tab) {
         t.classList.toggle('active', t.dataset.tab === tab);
     });
     document.getElementById('email').parentElement.style.display = tab === 'register' ? 'block' : 'none';
-    document.getElementById('authSubmit').textContent = tab === 'login' ? 'Log In' : 'Sign Up';
+    document.getElementById('authSubmit').textContent = tab === 'login' ? 'Enter' : 'Create';
 }
 
 function updateUI() {

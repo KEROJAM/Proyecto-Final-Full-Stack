@@ -5,6 +5,7 @@
 	"scripts": {
 		"start": "node server.js",
 		"dev": "nodemon server.js",
+		"start:all": "node server.js & cd ../frontend/vue-project && npm run dev",
 		"setup": "echo 'Creando base de datos...' && mysql -u root -p < ../mysql.sql"
 	},
 	"dependencies": {

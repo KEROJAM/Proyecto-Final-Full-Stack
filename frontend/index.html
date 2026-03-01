@@ -11,9 +11,9 @@
 <body>
     <nav class="navbar">
         <div class="navbar-content">
-            <h1 class="logo">One Sentence Reviews</h1>
+            <div class="logo">One Sentence Reviews</div>
             <div class="nav-actions">
-                <button id="addReviewBtn" class="btn btn-primary hidden">+ Add Review</button>
+                <button id="addReviewBtn" class="btn btn-primary hidden">+ Add</button>
                 <button id="loginBtn" class="btn btn-secondary">Log In</button>
                 <div id="userMenu" class="user-menu hidden">
                     <button class="user-avatar" id="userAvatar">
@@ -34,7 +34,7 @@
 
     <div id="authModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" id="closeAuthModal">&times;</span>
+            <span class="close-modal" id="closeAuthModal">×</span>
             <div class="auth-tabs">
                 <button class="auth-tab active" data-tab="login">Log In</button>
                 <button class="auth-tab" data-tab="register">Sign Up</button>
@@ -49,26 +49,26 @@
                 <div class="form-group">
                     <input type="password" id="password" placeholder="Password" required>
                 </div>
-                <button type="submit" class="btn btn-primary" id="authSubmit">Log In</button>
+                <button type="submit" class="btn btn-primary" id="authSubmit">Enter</button>
             </form>
         </div>
     </div>
 
     <div id="reviewModal" class="modal">
         <div class="modal-content modal-large">
-            <span class="close-modal" id="closeReviewModal">&times;</span>
-            <h2>Add Review</h2>
+            <span class="close-modal" id="closeReviewModal">×</span>
             <form id="reviewForm" class="review-form">
+                <h2>New Review</h2>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Media Type</label>
+                        <label>Type</label>
                         <select id="mediaType" required>
-                            <option value="book">📚 Book</option>
-                            <option value="movie">🎬 Movie</option>
-                            <option value="tv">📺 TV Show</option>
-                            <option value="anime">🎌 Anime</option>
-                            <option value="music">🎵 Music</option>
-                            <option value="game">🎮 Game</option>
+                            <option value="book">Book</option>
+                            <option value="movie">Movie</option>
+                            <option value="tv">TV Show</option>
+                            <option value="anime">Anime</option>
+                            <option value="music">Music</option>
+                            <option value="game">Game</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -87,12 +87,12 @@
                     <input type="text" id="mediaTitle" placeholder="What did you review?" required>
                 </div>
                 <div class="form-group">
-                    <label>Cover Image URL (optional)</label>
-                    <input type="url" id="coverUrl" placeholder="https://example.com/cover.jpg">
+                    <label>Cover URL</label>
+                    <input type="url" id="coverUrl" placeholder="https://...">
                 </div>
                 <div class="form-group">
-                    <label>Your Review (max 200 chars)</label>
-                    <textarea id="reviewText" placeholder="Write your one sentence review..." maxlength="200" required></textarea>
+                    <label>Review</label>
+                    <textarea id="reviewText" placeholder="Your one sentence review..." maxlength="200" required></textarea>
                     <span class="char-count"><span id="charCount">0</span>/200</span>
                 </div>
                 <div class="form-group">
