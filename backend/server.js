@@ -73,15 +73,23 @@ app.get('/api/proxy-image', async (req, res) => {
             'media-amazon.com',
             'upload.wikimedia.org',
             'graphql.anilist.co',
+            'cdn.anilist.co',
             'imgix.metmuseum.org',
             'itunes.apple.com',
+            'is1-ssl.mzstatic.com',
+            'is2-ssl.mzstatic.com',
+            'is3-ssl.mzstatic.com',
+            'is4-ssl.mzstatic.com',
+            'is5-ssl.mzstatic.com',
             'v2.sg.media-imdb.com',
             'media-1.rawg.io',
             'media.rawg.io',
             'steamuserimages-a.akamaihd.net',
             'cdn.akamai.steamstatic.com',
             'cdn.steamstatic.com',
-            'store.steampowered.com'
+            'store.steampowered.com',
+            'genius.com',
+            'images.genius.com'
         ];
         
         const urlObj = new URL(imageUrl);
