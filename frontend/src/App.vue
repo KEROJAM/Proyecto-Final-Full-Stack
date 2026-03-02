@@ -113,7 +113,7 @@
                     </div>
                   </div>
                   
-                  <div v-if="review.cover" class="review-cover" :class="{ 'is-longest': longestReviewId === review.id }" aria-label="Cover image">
+                  <div v-if="review.cover" class="review-cover" aria-label="Cover image">
                     <img :src="`/api/proxy-image?url=${encodeURIComponent(review.cover)}`" :alt="`Cover for ${review.media_title}`" @error="handleImageError">
                   </div>
                 </div>
@@ -328,14 +328,6 @@ const userMenuOptions = [
 ]
 
 const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
-
-const longestReviewId = computed(() => {
-  if (reviews.value.length === 0) return null
-  const longest = reviews.value.reduce((max, r) => 
-    (r.review_text?.length || 0) > (max.review_text?.length || 0) ? r : max
-  , reviews.value[0])
-  return longest.id
-})
 
 const mediaTypeColors = {
   movie: '#ef9ba5',
