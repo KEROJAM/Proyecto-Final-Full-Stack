@@ -135,14 +135,40 @@ const Review = {
         );
     },
 
-    async setTags(reviewId, tagIds) {
+    async setTags(reviewId, tags) {
         const db = await this.getDb();
         await db.execute('DELETE FROM review_tag_map WHERE review_id = ?', [reviewId]);
-        for (const tagId of tagIds) {
-            await db.execute(
-                'INSERT INTO review_tag_map (review_id, tag_id) VALUES (?, ?)',
-                [reviewId, tagId]
-            );
+        
+        for (const tag of tags) {
+            let tagId;
+            if (typeof tag === 'string') {
+                const [tagRows] = await db.execute(
+                    'SELECT id FROM review_tags WHERE name = ?',
+                    [tag]
+                );
+                if (tagRows.length > 0) {
+                    tagId = tagRows[0].id;
+                } else {
+                    const [result] = await db.execute(
+                        'INSERT IGNORE INTO review_tags (name) VALUES (?)',
+                        [tag]
+                    );
+                    const [newTag] = await db.execute(
+                        'SELECT id FROM review_tags WHERE name = ?',
+                        [tag]
+                    );
+                    tagId = newTag[0].id;
+                }
+            } else {
+                tagId = tag;
+            }
+            
+            if (tagId) {
+                await db.execute(
+                    'INSERT INTO review_tag_map (review_id, tag_id) VALUES (?, ?)',
+                    [reviewId, tagId]
+                );
+            }
         }
     },
 
