@@ -179,6 +179,17 @@ async function createConnectionPool() {
     rl.close();
     
     dbConn.release();
+
+    console.log('\n🎉 Base de datos lista! Iniciando frontend...');
+    const { spawn } = require('child_process');
+    const frontendProcess = spawn('npm', ['run', 'dev:frontend'], {
+      cwd: process.cwd().replace('/backend', ''),
+      shell: true,
+      detached: true,
+      stdio: 'ignore'
+    });
+    frontendProcess.unref();
+
     return pool;
     
   } catch (error) {

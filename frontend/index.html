@@ -1,113 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>One Sentence Reviews</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-content">
-            <div class="logo">One Sentence Reviews</div>
-            <div class="nav-actions">
-                <button id="addReviewBtn" class="btn btn-primary hidden">+ Add</button>
-                <button id="loginBtn" class="btn btn-secondary">Log In</button>
-                <div id="userMenu" class="user-menu hidden">
-                    <button class="user-avatar" id="userAvatar">
-                        <span id="userInitial">U</span>
-                    </button>
-                    <div class="dropdown-menu" id="dropdownMenu">
-                        <button id="myReviewsBtn">My Reviews</button>
-                        <button id="logoutBtn">Log Out</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <main class="feed" id="feed">
-        <div class="loading" id="loading">Loading reviews...</div>
-    </main>
-
-    <div id="authModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" id="closeAuthModal">×</span>
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-tab="login">Log In</button>
-                <button class="auth-tab" data-tab="register">Sign Up</button>
-            </div>
-            <form id="authForm" class="auth-form">
-                <div class="form-group">
-                    <input type="text" id="username" placeholder="Username" required>
-                </div>
-                <div class="form-group">
-                    <input type="email" id="email" placeholder="Email" required>
-                </div>
-                <div class="form-group">
-                    <input type="password" id="password" placeholder="Password" required>
-                </div>
-                <button type="submit" class="btn btn-primary" id="authSubmit">Enter</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="reviewModal" class="modal">
-        <div class="modal-content modal-large">
-            <span class="close-modal" id="closeReviewModal">×</span>
-            <form id="reviewForm" class="review-form">
-                <h2>New Review</h2>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select id="mediaType" required>
-                            <option value="book">Book</option>
-                            <option value="movie">Movie</option>
-                            <option value="tv">TV Show</option>
-                            <option value="anime">Anime</option>
-                            <option value="music">Music</option>
-                            <option value="game">Game</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Rating</label>
-                        <div class="star-rating" id="starRating">
-                            <span data-value="1">★</span>
-                            <span data-value="2">★</span>
-                            <span data-value="3">★</span>
-                            <span data-value="4">★</span>
-                            <span data-value="5">★</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="mediaTitle" placeholder="What did you review?" required>
-                </div>
-                <div class="form-group">
-                    <label>Cover URL</label>
-                    <input type="url" id="coverUrl" placeholder="https://...">
-                </div>
-                <div class="form-group">
-                    <label>Review</label>
-                    <textarea id="reviewText" placeholder="Your one sentence review..." maxlength="200" required></textarea>
-                    <span class="char-count"><span id="charCount">0</span>/200</span>
-                </div>
-                <div class="form-group">
-                    <label>Tags</label>
-                    <div class="tags-container" id="tagsContainer"></div>
-                </div>
-                <button type="submit" class="btn btn-primary">Post Review</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="toast" class="toast">
-        <span id="toastMessage"></span>
-    </div>
-
-    <script src="script.js"></script>
-</body>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
