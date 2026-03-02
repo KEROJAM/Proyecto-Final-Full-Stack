@@ -139,7 +139,9 @@ const Review = {
         const db = await this.getDb();
         await db.execute('DELETE FROM review_tag_map WHERE review_id = ?', [reviewId]);
         
-        for (const tag of tags) {
+        const uniqueTags = [...new Set(tags)];
+        
+        for (const tag of uniqueTags) {
             let tagId;
             if (typeof tag === 'string') {
                 const [tagRows] = await db.execute(
@@ -165,7 +167,7 @@ const Review = {
             
             if (tagId) {
                 await db.execute(
-                    'INSERT INTO review_tag_map (review_id, tag_id) VALUES (?, ?)',
+                    'INSERT IGNORE INTO review_tag_map (review_id, tag_id) VALUES (?, ?)',
                     [reviewId, tagId]
                 );
             }
