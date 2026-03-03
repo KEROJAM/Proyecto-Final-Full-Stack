@@ -1,59 +1,39 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 let pool;
 
-const rl = require('readline').createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-function pregunta(prompt) {
-  return new Promise((resolve) => {
-    rl.question(prompt, (answer) => resolve(answer.trim()));
-  });
-}
-
-async function getDbCredentials() {
-  const config = {
-    host: process.env.DB_HOST || await pregunta('Servidor de MySQL (localhost): ') || 'localhost',
-    user: process.env.DB_USER || await pregunta('Usuario de MySQL: '),
-    password: process.env.DB_PASSWORD || await pregunta('Contraseña de MySQL: '),
-    database: process.env.DB_NAME || await pregunta('Nombre de la base de datos (one_sentence_reviews): ') || 'one_sentence_reviews'
-  };
-  return config;
-}
-
 const CREATE_TABLES_SQL = `
 CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(100) DEFAULT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     avatar VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
-    media_type ENUM('book', 'movie', 'tv', 'music', 'game', 'anime') NOT NULL,
+    media_type VARCHAR(20) NOT NULL,
     media_title VARCHAR(255) NOT NULL,
     cover VARCHAR(500) DEFAULT NULL,
     review_text VARCHAR(200) NOT NULL,
     rating INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
-    INDEX idx_media_type (media_type),
-    INDEX idx_created_at (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE INDEX IF NOT EXISTS idx_user_id ON reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_media_type ON reviews(media_type);
+CREATE INDEX IF NOT EXISTS idx_created_at ON reviews(created_at);
+
 CREATE TABLE IF NOT EXISTS review_tags (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -67,30 +47,48 @@ CREATE TABLE IF NOT EXISTS review_tag_map (
 );
 
 CREATE TABLE IF NOT EXISTS reactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     review_id INT NOT NULL,
-    user_id INT NOT NULL,
-    emoji_type ENUM('heart', 'laughing', 'crying', 'surprised') NOT NULL,
+    user_id INT DEFAULT NULL,
+    emoji_type VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_reaction (review_id, user_id, emoji_type),
+    UNIQUE CONSTRAINT unique_reaction UNIQUE (review_id, COALESCE(user_id, 0), emoji_type),
     FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_review_id (review_id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-INSERT IGNORE INTO review_tags (name) VALUES 
+CREATE INDEX IF NOT EXISTS idx_review_id_reactions ON reactions(review_id);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id SERIAL PRIMARY KEY,
+    review_id INT NOT NULL,
+    user_id INT NOT NULL,
+    comment_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_review_id_comments ON comments(review_id);
+`;
+
+const SEED_DATA_SQL = `
+INSERT INTO review_tags (name) VALUES 
     ('funny'), ('serious'), ('made-me-cry'), ('thought-provoking'), 
     ('recommend'), ('skip-it'), ('underrated'), ('overrated'), 
-    ('inspiring'), ('mind-blowing');
+    ('inspiring'), ('mind-blowing')
+ON CONFLICT (name) DO NOTHING;
 
-INSERT IGNORE INTO users (username, name, email, password) VALUES 
+INSERT INTO users (username, name, email, password) VALUES 
     ('demo', 'Juan Pérez', 'demo@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
     ('maria_dev', 'María García', 'maria@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
     ('david_tech', 'David López', 'david@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
     ('ana_arts', 'Ana Martínez', 'ana@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'),
-    ('luis_gamer', 'Luis Rodríguez', 'luis@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
+    ('luis_gamer', 'Luis Rodríguez', 'luis@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
+ON CONFLICT (username) DO NOTHING;
 
-INSERT IGNORE INTO reviews (user_id, media_type, media_title, cover, review_text, rating) VALUES 
+INSERT INTO reviews (user_id, media_type, media_title, cover, review_text, rating) VALUES 
     (1, 'movie', 'Dune: Part Two', NULL, 'Visually stunning, but I needed 3 hours to recover emotionally.', 5),
     (2, 'book', 'Atomic Habits', NULL, 'Good concepts, but I skimmed 80% of it.', 3),
     (3, 'game', 'Hades', NULL, 'Finally beat it after 200 deaths, worth every one.', 5),
@@ -105,9 +103,10 @@ INSERT IGNORE INTO reviews (user_id, media_type, media_title, cover, review_text
     (3, 'game', 'Elden Ring', NULL, 'Best game I have ever played.', 5),
     (4, 'music', 'Starboy', NULL, 'This album is a masterpiece.', 4),
     (5, 'tv', 'Stranger Things', NULL, 'Binged all seasons in a week.', 4),
-    (1, 'movie', 'Oppenheimer', NULL, 'Cillian Murphy deserves an Oscar.', 5);
+    (1, 'movie', 'Oppenheimer', NULL, 'Cillian Murphy deserves an Oscar.', 5)
+ON CONFLICT DO NOTHING;
 
-INSERT IGNORE INTO review_tag_map (review_id, tag_id) VALUES 
+INSERT INTO review_tag_map (review_id, tag_id) VALUES 
     (1, 1), (1, 7),
     (2, 2), (2, 6),
     (3, 5),
@@ -117,47 +116,61 @@ INSERT IGNORE INTO review_tag_map (review_id, tag_id) VALUES
     (7, 10),
     (8, 5), (8, 9),
     (9, 1),
-    (10, 1);
+    (10, 1)
+ON CONFLICT DO NOTHING;
 `;
 
 async function createConnectionPool() {
   if (pool) return pool;
 
-  const config = await getDbCredentials();
+  const config = {
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    database: process.env.DB_NAME || 'one_sentence_reviews',
+    port: process.env.DB_PORT || 5432,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  };
 
   try {
-    // Primero conectar SIN base de datos
-    const tempConfig = { ...config };
-    delete tempConfig.database;
-    
-    console.log('Conectando a MySQL sin base de datos...');
-    const tempPool = mysql.createPool(tempConfig);
-    const conn = await tempPool.getConnection();
+    const tempPool = new Pool({
+      ...config,
+      database: 'postgres'
+    });
+
+    console.log('Conectando a PostgreSQL...');
+    const client = await tempPool.connect();
     console.log('Conexión exitosa');
-    
-    // Crear base de datos si no existe
-    const [dbs] = await conn.query('SHOW DATABASES LIKE ?', [config.database]);
-    if (dbs.length === 0) {
+
+    const dbCheck = await client.query(
+      "SELECT 1 FROM pg_database WHERE datname = $1",
+      [config.database]
+    );
+
+    if (dbCheck.rows.length === 0) {
       console.log(`Creando base de datos '${config.database}'...`);
-      await conn.query(`CREATE DATABASE IF NOT EXISTS ${config.database}`);
+      await client.query(`CREATE DATABASE ${config.database}`);
       console.log('Base de datos creada');
     } else {
       console.log(`Base de datos '${config.database}' ya existe`);
     }
-    
-    conn.release();
+
+    client.release();
     await tempPool.end();
-    
-    // Ahora conectar CON la base de datos
-    console.log('Conectando a la base de datos...');
-    pool = mysql.createPool(config);
-    const dbConn = await pool.getConnection();
+
+    pool = new Pool(config);
+    const dbConn = await pool.connect();
     console.log('Conexión exitosa a la base de datos');
-    
-    // Crear tablas si no existen
+
     console.log('Verificando tablas...');
-    const [tables] = await dbConn.query('SHOW TABLES');
-    if (tables.length === 0) {
+    const tablesCheck = await dbConn.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+
+    if (tablesCheck.rows.length === 0) {
       console.log('Creando tablas...');
       const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s);
       for (const stmt of statements) {
@@ -168,19 +181,25 @@ async function createConnectionPool() {
         }
       }
       console.log('Tablas creadas exitosamente');
+
+      console.log('Insertando datos iniciales...');
+      const seedStatements = SEED_DATA_SQL.split(';').map(s => s.trim()).filter(s => s);
+      for (const stmt of seedStatements) {
+        try {
+          await dbConn.query(stmt);
+        } catch (e) {
+          console.warn('Advertencia seed:', e.message);
+        }
+      }
+      console.log('Datos iniciales insertados');
     } else {
       console.log('Las tablas ya existen');
     }
-    
-    config.waitForConnections = true;
-    config.connectionLimit = 10;
-    config.queueLimit = 0;
 
-    rl.close();
-    
     dbConn.release();
 
-    console.log('\n🎉 Base de datos lista! Iniciando frontend...');
+    console.log('\n🎉 Base de datos lista!');
+    
     const { spawn } = require('child_process');
     const frontendProcess = spawn('npm', ['run', 'dev:frontend'], {
       cwd: process.cwd().replace('/backend', ''),

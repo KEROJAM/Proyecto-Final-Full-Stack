@@ -104,12 +104,12 @@ const authController = {
             const { q } = req.query;
             const db = await (await require('../database/connection'));
             
-            const [rows] = await db.execute(
-                'SELECT id, username, email, avatar FROM users WHERE username LIKE ? OR email LIKE ? LIMIT 10',
+            const result = await db.query(
+                'SELECT id, username, email, avatar FROM users WHERE username LIKE $1 OR email LIKE $2 LIMIT 10',
                 [`%${q}%`, `%${q}%`]
             );
             
-            res.json({ users: rows });
+            res.json({ users: result.rows });
         } catch (error) {
             console.error('Error en searchUsers:', error);
             res.status(500).json({ error: 'Error al buscar usuarios' });

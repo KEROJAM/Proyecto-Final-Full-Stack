@@ -6,7 +6,7 @@ const reactionController = {
         try {
             const { reviewId } = req.params;
             const { emoji_type } = req.body;
-            const userId = req.user.id;
+            const userId = req.user ? req.user.id : null;
 
             const validEmojis = ['heart', 'laughing', 'crying', 'surprised'];
             if (!validEmojis.includes(emoji_type)) {

@@ -1,6 +1,7 @@
 const authController = require('../controllers/authController');
 const reviewController = require('../controllers/reviewController');
 const reactionController = require('../controllers/reactionController');
+const commentController = require('../controllers/commentController');
 const authMiddleware = require('../middleware/auth');
 
 module.exports = (app) => {
@@ -19,6 +20,10 @@ module.exports = (app) => {
     app.put('/api/reviews/:id', authMiddleware, reviewController.update);
     app.delete('/api/reviews/:id', authMiddleware, reviewController.delete);
 
-    app.post('/api/reviews/:reviewId/reactions', authMiddleware, reactionController.toggle);
+    app.post('/api/reviews/:reviewId/reactions', reactionController.toggle);
     app.get('/api/reviews/:reviewId/reactions', reactionController.getByReview);
+
+    app.get('/api/reviews/:reviewId/comments', commentController.getByReview);
+    app.post('/api/reviews/:reviewId/comments', authMiddleware, commentController.create);
+    app.delete('/api/comments/:id', authMiddleware, commentController.delete);
 };

@@ -7,26 +7,37 @@ const Reaction = {
 
     async add(reviewId, userId, emojiType) {
         const db = await this.getDb();
-        await db.execute(
-            'INSERT INTO reactions (review_id, user_id, emoji_type) VALUES (?, ?, ?)',
-            [reviewId, userId, emojiType]
+        await db.query(
+            'INSERT INTO reactions (review_id, user_id, emoji_type) VALUES ($1, $2, $3)',
+            [reviewId, userId || null, emojiType]
         );
     },
 
     async remove(reviewId, userId, emojiType) {
         const db = await this.getDb();
-        await db.execute(
-            'DELETE FROM reactions WHERE review_id = ? AND user_id = ? AND emoji_type = ?',
+        await db.query(
+            'DELETE FROM reactions WHERE review_id = $1 AND user_id = $2 AND emoji_type = $3',
             [reviewId, userId, emojiType]
         );
     },
 
     async toggle(reviewId, userId, emojiType) {
         const db = await this.getDb();
-        const [existing] = await db.execute(
-            'SELECT id FROM reactions WHERE review_id = ? AND user_id = ? AND emoji_type = ?',
-            [reviewId, userId, emojiType]
-        );
+        
+        let existing;
+        if (userId) {
+            const result = await db.query(
+                'SELECT id FROM reactions WHERE review_id = $1 AND user_id = $2 AND emoji_type = $3',
+                [reviewId, userId, emojiType]
+            );
+            existing = result.rows;
+        } else {
+            const result = await db.query(
+                'SELECT id FROM reactions WHERE review_id = $1 AND user_id IS NULL AND emoji_type = $3',
+                [reviewId, emojiType]
+            );
+            existing = result.rows;
+        }
 
         if (existing.length > 0) {
             await this.remove(reviewId, userId, emojiType);
@@ -39,28 +50,28 @@ const Reaction = {
 
     async getByReviewId(reviewId) {
         const db = await this.getDb();
-        const [rows] = await db.execute(`
-            SELECT emoji_type, COUNT(*) as count, 
-            GROUP_CONCAT(user_id) as user_ids
+        const result = await db.query(`
+            SELECT emoji_type, COUNT(*) as count
             FROM reactions
-            WHERE review_id = ?
+            WHERE review_id = $1
             GROUP BY emoji_type
         `, [reviewId]);
         
-        const result = { heart: 0, laughing: 0, crying: 0, surprised: 0 };
+        const rows = result.rows;
+        const resultObj = { heart: 0, laughing: 0, crying: 0, surprised: 0 };
         rows.forEach(row => {
-            result[row.emoji_type] = row.count;
+            resultObj[row.emoji_type] = parseInt(row.count);
         });
-        return result;
+        return resultObj;
     },
 
     async getUserReactions(reviewId, userId) {
         const db = await this.getDb();
-        const [rows] = await db.execute(
-            'SELECT emoji_type FROM reactions WHERE review_id = ? AND user_id = ?',
+        const result = await db.query(
+            'SELECT emoji_type FROM reactions WHERE review_id = $1 AND user_id = $2',
             [reviewId, userId]
         );
-        return rows.map(row => row.emoji_type);
+        return result.rows.map(row => row.emoji_type);
     }
 };
 

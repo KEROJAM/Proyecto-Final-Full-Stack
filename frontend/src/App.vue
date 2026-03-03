@@ -110,11 +110,51 @@
                         <span class="emoji" aria-hidden="true">😲</span>
                         <span class="count">{{ review.reactions?.surprised || 0 }}</span>
                       </button>
+                      <button class="comment-btn" @click="toggleComments(review.id)">
+                        <span class="emoji">💬</span>
+                        <span class="count">{{ review.comments?.length || 0 }}</span>
+                      </button>
                     </div>
                   </div>
                   
                   <div v-if="review.cover" class="review-cover" aria-label="Cover image">
                     <img :src="`/api/proxy-image?url=${encodeURIComponent(review.cover)}`" :alt="`Cover for ${review.media_title}`" @error="handleImageError">
+                  </div>
+                </div>
+                
+                <div v-if="expandedComments[review.id]" class="comments-section">
+                  <div v-if="review.comments && review.comments.length > 0" class="comments-list">
+                    <div v-for="comment in review.comments" :key="comment.id" class="comment-item">
+                      <n-avatar class="comment-avatar" :style="{ backgroundColor: getAvatarColor(comment.username) }" :size="28">
+                        {{ comment.username?.charAt(0).toUpperCase() || 'U' }}
+                      </n-avatar>
+                      <div class="comment-content">
+                        <div class="comment-header">
+                          <span class="comment-username">{{ comment.name || comment.username }}</span>
+                          <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
+                        </div>
+                        <p class="comment-text">{{ comment.comment_text }}</p>
+                      </div>
+                      <button v-if="currentUser && currentUser.id === comment.user_id" class="delete-comment-btn" @click="handleDeleteComment(review.id, comment.id)">✕</button>
+                    </div>
+                  </div>
+                  <div v-else class="no-comments">No comments yet</div>
+                  
+                  <div v-if="currentUser" class="comment-input-container">
+                    <n-avatar class="comment-input-avatar" :style="{ backgroundColor: getAvatarColor(currentUser.username) }" :size="28">
+                      {{ userInitial }}
+                    </n-avatar>
+                    <input 
+                      v-model="commentInputs[review.id]"
+                      type="text" 
+                      class="comment-input"
+                      placeholder="Add a comment..."
+                      @keyup.enter="submitComment(review.id)"
+                    >
+                    <button class="send-comment-btn" @click="submitComment(review.id)">Send</button>
+                  </div>
+                  <div v-else class="login-to-comment">
+                    <span class="link" @click="showAuthModal = true">Log in</span> to comment
                   </div>
                 </div>
               </article>
@@ -289,6 +329,8 @@ const editForm = ref({
 })
 
 const avatarColors = ['#F4C2C2', '#B5EAD7', '#C7CEEA', '#E2F0CB', '#FFDAC1', '#E0BBE4', '#FFB7B2', '#C9E4CA', '#F0E6EF', '#E8D5B7']
+const expandedComments = ref({})
+const commentInputs = ref({})
 
 function getAvatarColor(username) {
   if (!username) return avatarColors[0]
@@ -389,6 +431,16 @@ async function loadReviews() {
   loading.value = true
   try {
     reviews.value = await apiRequest('/reviews/random?limit=20')
+    for (const review of reviews.value) {
+      try {
+        const reactionData = await apiRequest(`/reviews/${review.id}/reactions`)
+        review.reactions = reactionData.reactions
+        review.userReactions = reactionData.userReactions || []
+      } catch (e) {
+        review.reactions = { heart: 0, laughing: 0, crying: 0, surprised: 0 }
+        review.userReactions = []
+      }
+    }
   } catch (error) {
     console.error('Error:', error)
   } finally {
@@ -511,10 +563,6 @@ async function handleDeleteReview(reviewId) {
 }
 
 async function handleReaction(reviewId, emoji) {
-  if (!currentUser.value) {
-    showAuthModal.value = true
-    return
-  }
   try {
     const result = await apiRequest(`/reviews/${reviewId}/reactions`, {
       method: 'POST',
@@ -523,7 +571,9 @@ async function handleReaction(reviewId, emoji) {
     const review = reviews.value.find(r => r.id === reviewId)
     if (review) {
       review.reactions = result.reactions
-      review.userReactions = result.userReactions || []
+      if (currentUser.value) {
+        review.userReactions = result.userReactions || []
+      }
     }
   } catch (error) {
     alert(error.message)
@@ -536,6 +586,55 @@ function handleUserMenuSelect(key) {
     localStorage.removeItem('user')
     currentUser.value = null
     loadReviews()
+  }
+}
+
+async function toggleComments(reviewId) {
+  expandedComments.value[reviewId] = !expandedComments.value[reviewId]
+  if (expandedComments.value[reviewId]) {
+    const review = reviews.value.find(r => r.id === reviewId)
+    if (review && !review.comments) {
+      try {
+        const data = await apiRequest(`/reviews/${reviewId}/comments`)
+        review.comments = data.comments
+      } catch (error) {
+        console.error('Error loading comments:', error)
+      }
+    }
+  }
+}
+
+async function submitComment(reviewId) {
+  const commentText = commentInputs.value[reviewId]
+  if (!commentText || commentText.trim() === '') return
+  
+  try {
+    const data = await apiRequest(`/reviews/${reviewId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ comment_text: commentText })
+    })
+    const review = reviews.value.find(r => r.id === reviewId)
+    if (review) {
+      review.comments = data.comments
+    }
+    commentInputs.value[reviewId] = ''
+  } catch (error) {
+    alert(error.message)
+  }
+}
+
+async function handleDeleteComment(reviewId, commentId) {
+  if (!confirm('Are you sure you want to delete this comment?')) return
+  try {
+    await apiRequest(`/comments/${commentId}`, {
+      method: 'DELETE'
+    })
+    const review = reviews.value.find(r => r.id === reviewId)
+    if (review) {
+      review.comments = review.comments.filter(c => c.id !== commentId)
+    }
+  } catch (error) {
+    alert(error.message)
   }
 }
 
@@ -935,5 +1034,165 @@ body {
 
 .n-button--primary-type:hover {
   background-color: #6892BC !important;
+}
+
+.comment-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #B8C2CC;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s ease;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+}
+
+.comment-btn:hover {
+  background: #F7F5F2;
+  color: #7BA3C9;
+}
+
+.comments-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #F0EDE8;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.comment-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  position: relative;
+}
+
+.comment-avatar {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #2D3436;
+}
+
+.comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.comment-username {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #3D4852;
+}
+
+.comment-time {
+  font-size: 0.75rem;
+  color: #8795A1;
+}
+
+.comment-text {
+  font-size: 0.9rem;
+  color: #4A5568;
+  margin: 0;
+  word-break: break-word;
+}
+
+.delete-comment-btn {
+  background: none;
+  border: none;
+  color: #B8C2CC;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.2rem;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.comment-item:hover .delete-comment-btn {
+  opacity: 1;
+}
+
+.delete-comment-btn:hover {
+  color: #E53E3E;
+}
+
+.comment-input-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.comment-input-avatar {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #2D3436;
+}
+
+.comment-input {
+  flex: 1;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.comment-input:focus {
+  border-color: #7BA3C9;
+}
+
+.send-comment-btn {
+  background: #7BA3C9;
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.send-comment-btn:hover {
+  background: #6892BC;
+}
+
+.no-comments {
+  color: #8795A1;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.login-to-comment {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #8795A1;
+  padding: 0.5rem;
+}
+
+.login-to-comment .link {
+  color: #7BA3C9;
+  cursor: pointer;
+}
+
+.login-to-comment .link:hover {
+  text-decoration: underline;
 }
 </style>
