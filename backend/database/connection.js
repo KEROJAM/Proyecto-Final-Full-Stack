@@ -2,6 +2,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 let pool;
+let poolPromise = null;
 
 const CREATE_TABLES_SQL = `
 CREATE TABLE IF NOT EXISTS users (
@@ -52,9 +53,9 @@ CREATE TABLE IF NOT EXISTS reactions (
     user_id INT DEFAULT NULL,
     emoji_type VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE CONSTRAINT unique_reaction UNIQUE (review_id, COALESCE(user_id, 0), emoji_type),
     FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (review_id, COALESCE(user_id, 0), emoji_type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_review_id_reactions ON reactions(review_id);
@@ -122,10 +123,27 @@ ON CONFLICT DO NOTHING;
 
 async function createConnectionPool() {
   if (pool) return pool;
+  if (poolPromise) return poolPromise;
+
+  poolPromise = initPool();
+  return poolPromise;
+}
+
+async function initPool() {
 
   let config;
   if (process.env.DATABASE_URL) {
-    config = { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } };
+    const url = process.env.DATABASE_URL;
+    const params = new URL(url);
+    const port = params.port || (url.includes('pooler') ? 6543 : 5432);
+    config = {
+      host: params.hostname,
+      port: parseInt(port),
+      database: params.pathname?.replace('/', '') || 'postgres',
+      user: params.username,
+      password: params.password,
+      ssl: { rejectUnauthorized: false }
+    };
   } else {
     config = {
       host: process.env.DB_HOST || 'localhost',
@@ -198,4 +216,12 @@ async function createConnectionPool() {
   }
 }
 
-module.exports = createConnectionPool();
+module.exports = createConnectionPool;
+
+module.exports.closePool = async () => {
+  if (pool) {
+    await pool.end();
+    pool = null;
+    poolPromise = null;
+  }
+};

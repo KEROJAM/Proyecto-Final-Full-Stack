@@ -1,8 +1,9 @@
-const mockExecute = jest.fn();
+const mockQuery = jest.fn();
 const mockPool = {
-    execute: mockExecute
+    query: mockQuery,
+    connect: jest.fn(() => Promise.resolve({ release: jest.fn() }))
 };
 
-jest.mock('../../database/connection', () => Promise.resolve(mockPool));
+jest.mock('../../database/connection', () => async () => mockPool);
 
-module.exports = { mockPool, mockExecute };
+module.exports = { mockPool, mockQuery };

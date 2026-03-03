@@ -1,31 +1,33 @@
-const mockExecute = jest.fn();
-jest.mock('../../database/connection', () => Promise.resolve({
-    execute: mockExecute
-}));
+const mockQuery = jest.fn();
+const mockPool = {
+    query: mockQuery,
+    connect: jest.fn(() => Promise.resolve({ release: jest.fn() }))
+};
+jest.mock('../../database/connection', () => async () => mockPool);
 
 const Review = require('../../models/Review');
 
 describe('Review Model', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockExecute.mockReset();
+        mockQuery.mockReset();
     });
 
     describe('create', () => {
         it('should create a new review', async () => {
-            mockExecute.mockResolvedValueOnce([{ insertId: 1 }]);
+            mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] });
 
             const result = await Review.create(1, 'movie', 'Test Movie', 'Great movie!', 5, 'cover.jpg');
 
             expect(result).toBe(1);
-            expect(mockExecute).toHaveBeenCalledWith(
-                'INSERT INTO reviews (user_id, media_type, media_title, cover, review_text, rating) VALUES (?, ?, ?, ?, ?, ?)',
+            expect(mockQuery).toHaveBeenCalledWith(
+                'INSERT INTO reviews (user_id, media_type, media_title, cover, review_text, rating) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
                 [1, 'movie', 'Test Movie', 'cover.jpg', 'Great movie!', 5]
             );
         });
 
         it('should create review without rating', async () => {
-            mockExecute.mockResolvedValueOnce([{ insertId: 2 }]);
+            mockQuery.mockResolvedValueOnce({ rows: [{ id: 2 }] });
 
             const result = await Review.create(1, 'book', 'Test Book', 'Good book!');
 
@@ -36,7 +38,7 @@ describe('Review Model', () => {
     describe('findById', () => {
         it('should find review by id', async () => {
             const mockReview = { id: 1, media_type: 'movie', media_title: 'Test Movie' };
-            mockExecute.mockResolvedValueOnce([[mockReview]]);
+            mockQuery.mockResolvedValueOnce({ rows: [mockReview] });
 
             const result = await Review.findById(1);
 
@@ -47,7 +49,7 @@ describe('Review Model', () => {
     describe('findAll', () => {
         it('should return all reviews with default limit', async () => {
             const mockReviews = [{ id: 1 }, { id: 2 }];
-            mockExecute.mockResolvedValueOnce([mockReviews]);
+            mockQuery.mockResolvedValueOnce({ rows: mockReviews });
 
             const result = await Review.findAll();
 
@@ -56,18 +58,18 @@ describe('Review Model', () => {
 
         it('should accept custom limit and offset', async () => {
             const mockReviews = [{ id: 1 }];
-            mockExecute.mockResolvedValueOnce([mockReviews]);
+            mockQuery.mockResolvedValueOnce({ rows: mockReviews });
 
             await Review.findAll(10, 5);
 
-            expect(mockExecute).toHaveBeenCalled();
+            expect(mockQuery).toHaveBeenCalled();
         });
     });
 
     describe('findByUserId', () => {
         it('should find reviews by user id', async () => {
             const mockReviews = [{ id: 1, user_id: 1 }];
-            mockExecute.mockResolvedValueOnce([mockReviews]);
+            mockQuery.mockResolvedValueOnce({ rows: mockReviews });
 
             const result = await Review.findByUserId(1);
 
@@ -78,7 +80,7 @@ describe('Review Model', () => {
     describe('findByMediaType', () => {
         it('should find reviews by media type', async () => {
             const mockReviews = [{ id: 1, media_type: 'movie' }];
-            mockExecute.mockResolvedValueOnce([mockReviews]);
+            mockQuery.mockResolvedValueOnce({ rows: mockReviews });
 
             const result = await Review.findByMediaType('movie');
 
@@ -88,22 +90,22 @@ describe('Review Model', () => {
 
     describe('update', () => {
         it('should update review fields', async () => {
-            mockExecute.mockResolvedValueOnce([{}]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             await Review.update(1, 1, { review_text: 'Updated text', rating: 4 });
 
-            expect(mockExecute).toHaveBeenCalled();
+            expect(mockQuery).toHaveBeenCalled();
         });
     });
 
     describe('delete', () => {
         it('should delete review', async () => {
-            mockExecute.mockResolvedValueOnce([{}]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             await Review.delete(1, 1);
 
-            expect(mockExecute).toHaveBeenCalledWith(
-                'DELETE FROM reviews WHERE id = ? AND user_id = ?',
+            expect(mockQuery).toHaveBeenCalledWith(
+                'DELETE FROM reviews WHERE id = $1 AND user_id = $2',
                 [1, 1]
             );
         });
@@ -111,12 +113,12 @@ describe('Review Model', () => {
 
     describe('addTag', () => {
         it('should add tag to review', async () => {
-            mockExecute.mockResolvedValueOnce([{}]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             await Review.addTag(1, 1);
 
-            expect(mockExecute).toHaveBeenCalledWith(
-                'INSERT IGNORE INTO review_tag_map (review_id, tag_id) VALUES (?, ?)',
+            expect(mockQuery).toHaveBeenCalledWith(
+                'INSERT INTO review_tag_map (review_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
                 [1, 1]
             );
         });
@@ -124,12 +126,12 @@ describe('Review Model', () => {
 
     describe('removeTag', () => {
         it('should remove tag from review', async () => {
-            mockExecute.mockResolvedValueOnce([{}]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             await Review.removeTag(1, 1);
 
-            expect(mockExecute).toHaveBeenCalledWith(
-                'DELETE FROM review_tag_map WHERE review_id = ? AND tag_id = ?',
+            expect(mockQuery).toHaveBeenCalledWith(
+                'DELETE FROM review_tag_map WHERE review_id = $1 AND tag_id = $2',
                 [1, 1]
             );
         });
@@ -138,7 +140,7 @@ describe('Review Model', () => {
     describe('getAllTags', () => {
         it('should return all tags', async () => {
             const mockTags = [{ id: 1, name: 'Action' }, { id: 2, name: 'Comedy' }];
-            mockExecute.mockResolvedValueOnce([mockTags]);
+            mockQuery.mockResolvedValueOnce({ rows: mockTags });
 
             const result = await Review.getAllTags();
 

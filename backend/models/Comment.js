@@ -2,7 +2,7 @@ const createConnectionPool = require('../database/connection');
 
 const Comment = {
     async getDb() {
-        return await createConnectionPool;
+        return await createConnectionPool();
     },
 
     async create(reviewId, userId, commentText) {

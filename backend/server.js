@@ -134,7 +134,7 @@ app.get('*', (req, res) => {
 
 async function startServer() {
     try {
-        const pool = await createConnectionPool;
+        const pool = await createConnectionPool();
         console.log('Conectado a MySQL');
         
         await updateCovers();
@@ -150,7 +150,7 @@ async function startServer() {
 
 async function updateCovers() {
     try {
-        const db = await createConnectionPool;
+        const db = await createConnectionPool();
         
         const [reviews] = await db.execute('SELECT id, media_type, media_title, cover FROM reviews WHERE cover IS NULL OR cover = ""');
         

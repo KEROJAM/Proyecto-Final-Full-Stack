@@ -2,7 +2,7 @@ const createConnectionPool = require('../database/connection');
 
 const Reaction = {
     async getDb() {
-        return await createConnectionPool;
+        return await createConnectionPool();
     },
 
     async add(reviewId, userId, emojiType) {

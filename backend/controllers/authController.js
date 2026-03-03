@@ -102,7 +102,7 @@ const authController = {
     async searchUsers(req, res) {
         try {
             const { q } = req.query;
-            const db = await (await require('../database/connection'));
+            const db = await (await require('../database/connection'))();
             
             const result = await db.query(
                 'SELECT id, username, email, avatar FROM users WHERE username LIKE $1 OR email LIKE $2 LIMIT 10',

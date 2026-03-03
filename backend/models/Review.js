@@ -2,7 +2,7 @@ const createConnectionPool = require('../database/connection');
 
 const Review = {
     async getDb() {
-        return await createConnectionPool;
+        return await createConnectionPool();
     },
 
     async create(userId, mediaType, mediaTitle, reviewText, rating = null, cover = null) {

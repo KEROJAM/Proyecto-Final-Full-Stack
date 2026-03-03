@@ -2,7 +2,7 @@ const createConnectionPool = require('../database/connection');
 
 const User = {
     async getDb() {
-        return await createConnectionPool;
+        return await createConnectionPool();
     },
 
     async create(username, name, email, password) {

@@ -1,24 +1,26 @@
-const mockExecute = jest.fn();
-jest.mock('../../database/connection', () => Promise.resolve({
-    execute: mockExecute
-}));
+const mockQuery = jest.fn();
+const mockPool = {
+    query: mockQuery,
+    connect: jest.fn(() => Promise.resolve({ release: jest.fn() }))
+};
+jest.mock('../../database/connection', () => async () => mockPool);
 
 const Reaction = require('../../models/Reaction');
 
 describe('Reaction Model', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockExecute.mockReset();
+        mockQuery.mockReset();
     });
 
     describe('add', () => {
         it('should add a reaction', async () => {
-            mockExecute.mockResolvedValueOnce([{ insertId: 1 }]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             await Reaction.add(1, 1, 'heart');
 
-            expect(mockExecute).toHaveBeenCalledWith(
-                'INSERT INTO reactions (review_id, user_id, emoji_type) VALUES (?, ?, ?)',
+            expect(mockQuery).toHaveBeenCalledWith(
+                'INSERT INTO reactions (review_id, user_id, emoji_type) VALUES ($1, $2, $3)',
                 [1, 1, 'heart']
             );
         });
@@ -26,12 +28,12 @@ describe('Reaction Model', () => {
 
     describe('remove', () => {
         it('should remove a reaction', async () => {
-            mockExecute.mockResolvedValueOnce([{}]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             await Reaction.remove(1, 1, 'heart');
 
-            expect(mockExecute).toHaveBeenCalledWith(
-                'DELETE FROM reactions WHERE review_id = ? AND user_id = ? AND emoji_type = ?',
+            expect(mockQuery).toHaveBeenCalledWith(
+                'DELETE FROM reactions WHERE review_id = $1 AND user_id = $2 AND emoji_type = $3',
                 [1, 1, 'heart']
             );
         });
@@ -39,9 +41,9 @@ describe('Reaction Model', () => {
 
     describe('toggle', () => {
         it('should add reaction if not exists', async () => {
-            mockExecute
-                .mockResolvedValueOnce([[]])
-                .mockResolvedValueOnce([{}]);
+            mockQuery
+                .mockResolvedValueOnce({ rows: [] })
+                .mockResolvedValueOnce({ rows: [] });
 
             const result = await Reaction.toggle(1, 1, 'heart');
 
@@ -49,9 +51,9 @@ describe('Reaction Model', () => {
         });
 
         it('should remove reaction if exists', async () => {
-            mockExecute
-                .mockResolvedValueOnce([[{ id: 1 }]])
-                .mockResolvedValueOnce([{}]);
+            mockQuery
+                .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+                .mockResolvedValueOnce({ rows: [] });
 
             const result = await Reaction.toggle(1, 1, 'heart');
 
@@ -62,10 +64,10 @@ describe('Reaction Model', () => {
     describe('getByReviewId', () => {
         it('should return reaction counts by type', async () => {
             const mockRows = [
-                { emoji_type: 'heart', count: 3, user_ids: '1,2,3' },
-                { emoji_type: 'laughing', count: 1, user_ids: '1' }
+                { emoji_type: 'heart', count: '3' },
+                { emoji_type: 'laughing', count: '1' }
             ];
-            mockExecute.mockResolvedValueOnce([mockRows]);
+            mockQuery.mockResolvedValueOnce({ rows: mockRows });
 
             const result = await Reaction.getByReviewId(1);
 
@@ -78,7 +80,7 @@ describe('Reaction Model', () => {
         });
 
         it('should return zero counts when no reactions', async () => {
-            mockExecute.mockResolvedValueOnce([[]]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             const result = await Reaction.getByReviewId(1);
 
@@ -97,7 +99,7 @@ describe('Reaction Model', () => {
                 { emoji_type: 'heart' },
                 { emoji_type: 'laughing' }
             ];
-            mockExecute.mockResolvedValueOnce([mockRows]);
+            mockQuery.mockResolvedValueOnce({ rows: mockRows });
 
             const result = await Reaction.getUserReactions(1, 1);
 
@@ -105,7 +107,7 @@ describe('Reaction Model', () => {
         });
 
         it('should return empty array when no reactions', async () => {
-            mockExecute.mockResolvedValueOnce([[]]);
+            mockQuery.mockResolvedValueOnce({ rows: [] });
 
             const result = await Reaction.getUserReactions(1, 1);
 
