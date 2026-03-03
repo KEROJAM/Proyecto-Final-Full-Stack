@@ -135,8 +135,7 @@ async function createConnectionPool() {
       port: process.env.DB_PORT || 5432,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-      ssl: { rejectUnauthorized: false }
+      connectionTimeoutMillis: 10000
     };
   }
 

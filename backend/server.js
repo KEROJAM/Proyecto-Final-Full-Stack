@@ -49,8 +49,6 @@ app.use((req, res, next) => {
 
 require('./routes/index')(app);
 
-app.use(express.static(path.join(__dirname, '../frontend')));
-
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Servidor funcionando' });
 });
@@ -129,13 +127,13 @@ app.use((err, req, res, next) => {
 });
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
 async function startServer() {
     try {
         const pool = await createConnectionPool;
-        console.log('Conectado a MySQL');
+        console.log('Conectado a PostgreSQL');
         
         await updateCovers();
         
@@ -152,22 +150,22 @@ async function updateCovers() {
     try {
         const db = await createConnectionPool;
         
-        const [reviews] = await db.execute('SELECT id, media_type, media_title, cover FROM reviews WHERE cover IS NULL OR cover = ""');
+        const reviews = await db.query('SELECT id, media_type, media_title, cover FROM reviews WHERE cover IS NULL OR cover = \'\'');
         
-        if (reviews.length === 0) {
+        if (reviews.rows.length === 0) {
             console.log('Todas las reviews ya tienen portada');
             return;
         }
         
-        console.log(`Buscando portadas para ${reviews.length} reviews...`);
+        console.log(`Buscando portadas para ${reviews.rows.length} reviews...`);
         
-        for (const review of reviews) {
+        for (const review of reviews.rows) {
             console.log(`Buscando: ${review.media_title} (${review.media_type})`);
             
             const cover = await coverService.searchCover(review.media_type, review.media_title);
             
             if (cover) {
-                await db.execute('UPDATE reviews SET cover = ? WHERE id = ?', [cover, review.id]);
+                await db.query('UPDATE reviews SET cover = $1 WHERE id = $2', [cover, review.id]);
                 console.log(`  ✓ Portada encontrada`);
             } else {
                 console.log(`  ✗ No encontrada`);
