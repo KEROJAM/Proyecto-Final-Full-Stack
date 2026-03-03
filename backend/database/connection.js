@@ -123,43 +123,24 @@ ON CONFLICT DO NOTHING;
 async function createConnectionPool() {
   if (pool) return pool;
 
-  const config = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'one_sentence_reviews',
-    port: process.env.DB_PORT || 5432,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-  };
+  let config;
+  if (process.env.DATABASE_URL) {
+    config = { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } };
+  } else {
+    config = {
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'postgres',
+      port: process.env.DB_PORT || 5432,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      ssl: { rejectUnauthorized: false }
+    };
+  }
 
   try {
-    const tempPool = new Pool({
-      ...config,
-      database: 'postgres'
-    });
-
-    console.log('Conectando a PostgreSQL...');
-    const client = await tempPool.connect();
-    console.log('Conexión exitosa');
-
-    const dbCheck = await client.query(
-      "SELECT 1 FROM pg_database WHERE datname = $1",
-      [config.database]
-    );
-
-    if (dbCheck.rows.length === 0) {
-      console.log(`Creando base de datos '${config.database}'...`);
-      await client.query(`CREATE DATABASE ${config.database}`);
-      console.log('Base de datos creada');
-    } else {
-      console.log(`Base de datos '${config.database}' ya existe`);
-    }
-
-    client.release();
-    await tempPool.end();
-
     pool = new Pool(config);
     const dbConn = await pool.connect();
     console.log('Conexión exitosa a la base de datos');
