@@ -139,6 +139,8 @@ async function initPool() {
   let config;
   if (process.env.DATABASE_URL) {
     const url = process.env.DATABASE_URL;
+    console.log('DATABASE_URL (primeros 50 chars):', url.substring(0, 50) + '...');
+    
     const params = new URL(url);
     const port = params.port || (url.includes('pooler') ? 6543 : 5432);
     config = {
@@ -152,7 +154,11 @@ async function initPool() {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: isVercel ? 5000 : 10000
     };
-    console.log('Host:', config.host, 'Port:', config.port, 'DB:', config.database);
+    console.log('Host:', config.host);
+    console.log('Port:', config.port);
+    console.log('Database:', config.database);
+    console.log('User:', config.user);
+    console.log('Is pooler:', url.includes('pooler'));
   } else {
     console.log('No hay DATABASE_URL, usando configuración manual');
     config = {
@@ -168,7 +174,17 @@ async function initPool() {
   }
 
   try {
+    console.log('Creando pool con config:', {
+      host: config.host,
+      port: config.port,
+      database: config.database,
+      user: config.user,
+      max: config.max
+    });
+    
     pool = new Pool(config);
+    console.log('Pool creado, intentando conectar...');
+    
     const dbConn = await pool.connect();
     console.log('Conexión exitosa a la base de datos');
 
