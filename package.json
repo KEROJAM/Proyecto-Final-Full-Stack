@@ -9,7 +9,12 @@
     "start": "cd backend && npm start",
     "install:all": "cd backend && npm install && cd ../frontend && npm install"
   },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC"
 }
+
