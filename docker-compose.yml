@@ -40,8 +40,8 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3001/api/health || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 10
+      timeout: 30s
+      retries: 15
 
   frontend:
     build:
