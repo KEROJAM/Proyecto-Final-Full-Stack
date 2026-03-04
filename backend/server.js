@@ -100,7 +100,10 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/proxy-image', async (req, res) => {
     try {
         let imageUrl = req.query.url;
+        console.log('[PROXY] Solicitud de imagen:', imageUrl ? imageUrl.substring(0, 50) + '...' : 'sin URL');
+        
         if (!imageUrl) {
+            console.log('[PROXY] Error: URL requerida');
             return res.status(400).json({ error: 'URL requerida' });
         }
 
@@ -139,10 +142,14 @@ app.get('/api/proxy-image', async (req, res) => {
         const urlObj = new URL(imageUrl);
         const isAllowed = allowedDomains.some(domain => urlObj.hostname.includes(domain));
         
+        console.log('[PROXY] Hostname:', urlObj.hostname, '- Permitido:', isAllowed);
+        
         if (!isAllowed) {
+            console.log('[PROXY] Dominio no permitido:', urlObj.hostname);
             return res.status(403).json({ error: 'Dominio no permitido' });
         }
 
+        console.log('[PROXY] Descargando imagen...');
         const response = await axios({
             url: imageUrl,
             method: 'GET',
@@ -155,12 +162,14 @@ app.get('/api/proxy-image', async (req, res) => {
         });
 
         const contentType = response.headers['content-type'] || 'image/jpeg';
+        console.log('[PROXY] Imagen descargada exitosamente - Content-Type:', contentType);
         res.set('Content-Type', contentType);
         res.set('Cache-Control', 'public, max-age=86400');
         res.send(response.data);
     } catch (error) {
-        console.error('Proxy error:', error.message);
-        res.status(500).json({ error: 'Error al obtener imagen' });
+        console.error('[PROXY] Error:', error.message);
+        console.error('[PROXY] Stack:', error.stack);
+        res.status(500).json({ error: 'Error al obtener imagen', details: error.message });
     }
 });
 

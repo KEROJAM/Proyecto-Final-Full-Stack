@@ -90,21 +90,21 @@ INSERT INTO users (username, name, email, password) VALUES
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO reviews (user_id, media_type, media_title, cover, review_text, rating) VALUES 
-    (1, 'movie', 'Dune: Part Two', NULL, 'Visually stunning, but I needed 3 hours to recover emotionally.', 5),
-    (2, 'book', 'Atomic Habits', NULL, 'Good concepts, but I skimmed 80% of it.', 3),
-    (3, 'game', 'Hades', NULL, 'Finally beat it after 200 deaths, worth every one.', 5),
-    (4, 'tv', 'Breaking Bad', NULL, 'Started watching at 11pm, finished season 1 at 3am. No regrets.', 5),
-    (5, 'music', 'Random Access Memories', NULL, 'Made me feel like I was in a sci-fi movie soundtrack.', 4),
-    (1, 'book', 'Project Hail Mary', NULL, 'The friendliest science book ever written.', 5),
-    (2, 'movie', 'Everything Everywhere All At Once', NULL, 'I still do not understand the bagel.', 4),
-    (3, 'tv', 'The Office', NULL, 'Watched it during hard times, it literally saved my mental health.', 5),
-    (4, 'game', 'Stardew Valley', NULL, 'I have 400 hours and no shame.', 4),
-    (5, 'music', 'Blue Moon', NULL, 'Listened to this on repeat for three days straight.', 3),
-    (2, 'book', 'The Psychology of Money', NULL, 'Changed how I think about wealth.', 5),
-    (3, 'game', 'Elden Ring', NULL, 'Best game I have ever played.', 5),
-    (4, 'music', 'Starboy', NULL, 'This album is a masterpiece.', 4),
-    (5, 'tv', 'Stranger Things', NULL, 'Binged all seasons in a week.', 4),
-    (1, 'movie', 'Oppenheimer', NULL, 'Cillian Murphy deserves an Oscar.', 5)
+    (1, 'movie', 'Dune: Part Two', 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg', 'Visually stunning, but I needed 3 hours to recover emotionally.', 5),
+    (2, 'book', 'Atomic Habits', 'https://images-na.ssl-images-amazon.com/images/I/81wgcld4wxL.jpg', 'Good concepts, but I skimmed 80% of it.', 3),
+    (3, 'game', 'Hades', 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000042508/box.png', 'Finally beat it after 200 deaths, worth every one.', 5),
+    (4, 'tv', 'Breaking Bad', 'https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg', 'Started watching at 11pm, finished season 1 at 3am. No regrets.', 5),
+    (5, 'music', 'Random Access Memories', 'https://upload.wikimedia.org/wikipedia/en/a/a7/Random_Access_Memories.jpg', 'Made me feel like I was in a sci-fi movie soundtrack.', 4),
+    (1, 'book', 'Project Hail Mary', 'https://images-na.ssl-images-amazon.com/images/I/91vS2Ph2S5L.jpg', 'The friendliest science book ever written.', 5),
+    (2, 'movie', 'Everything Everywhere All At Once', 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg', 'I still do not understand the bagel.', 4),
+    (3, 'tv', 'The Office', 'https://image.tmdb.org/t/p/w500/qWnJzyZhyy74gjpSjIXWmuk0ifX.jpg', 'Watched it during hard times, it literally saved my mental health.', 5),
+    (4, 'game', 'Stardew Valley', 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000037653/box.png', 'I have 400 hours and no shame.', 4),
+    (5, 'music', 'Blue Moon', 'https://upload.wikimedia.org/wikipedia/en/7/71/Blue_Moon_%28Young_Thug_album%29.jpg', 'Listened to this on repeat for three days straight.', 3),
+    (2, 'book', 'The Psychology of Money', 'https://images-na.ssl-images-amazon.com/images/I/81Dky+tyvqL.jpg', 'Changed how I think about wealth.', 5),
+    (3, 'game', 'Elden Ring', 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000061369/box.png', 'Best game I have ever played.', 5),
+    (4, 'music', 'Starboy', 'https://upload.wikimedia.org/wikipedia/en/a/a9/Starboy_The_Weeknd_album_cover.png', 'This album is a masterpiece.', 4),
+    (5, 'tv', 'Stranger Things', 'https://image.tmdb.org/t/p/w500/o7qi2097KejWCO1q2z1Pg85oi82.jpg', 'Binged all seasons in a week.', 4),
+    (1, 'movie', 'Oppenheimer', 'https://image.tmdb.org/t/p/w500/8Gxv8kSoNmQQciqVTXAwaay6OnO.jpg', 'Cillian Murphy deserves an Oscar.', 5)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO review_tag_map (review_id, tag_id) VALUES 
@@ -135,12 +135,6 @@ async function initPool() {
   console.log('[DB] Inicializando pool de conexión...');
   console.log('[DB] VERCEL:', isVercel);
   console.log('[DB] DATABASE_URL existe:', !!process.env.DATABASE_URL);
-  
-  if (!process.env.DATABASE_URL && isVercel) {
-    console.error('[DB] CRÍTICO: DATABASE_URL no está configurada en Vercel!');
-    console.error('[DB] Por favor, ve al dashboard de Vercel y agrega DATABASE_URL a las variables de entorno');
-    throw new Error('DATABASE_URL no configurada en Vercel. Configúralo en el dashboard de Vercel.');
-  }
   
   let config;
   if (process.env.DATABASE_URL) {
@@ -235,11 +229,12 @@ async function initPool() {
   } catch (error) {
     console.error('[DB] Error de conexión a la base de datos:', error.message);
     console.error('[DB] Error stack:', error.stack);
+    console.error('[DB] DATABASE_URL:', process.env.DATABASE_URL ? 'present' : 'MISSING');
     if (!isVercel) {
       process.exit(1);
     }
-    // En Vercel, relanzar el error para que se maneje correctamente en el middleware
-    throw error;
+    // En Vercel, devolver null y loguear
+    return null;
   }
 }
 
