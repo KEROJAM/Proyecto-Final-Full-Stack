@@ -228,9 +228,12 @@ async function initPool() {
     
   } catch (error) {
     console.error('Error de conexión a la base de datos:', error.message);
+    console.error('Error completo:', error);
+    console.error('Error stack:', error.stack);
     if (!isVercel) {
       process.exit(1);
     }
+    // En Vercel, devolver null pero loguear el error para debugging
     return null;
   }
 }

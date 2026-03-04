@@ -55,18 +55,28 @@ require('./routes/index')(app);
 
 app.get('/api/health', async (req, res) => {
     try {
+        console.log('[HEALTH CHECK] Iniciando...');
         const pool = await createConnectionPool();
         let dbStatus = 'disconnected';
         let reviewCount = 0;
+        let dbError = null;
+        
+        console.log('[HEALTH CHECK] Pool obtenido:', !!pool);
         
         if (pool) {
             try {
+                console.log('[HEALTH CHECK] Intentando query...');
                 const result = await pool.query('SELECT COUNT(*) as count FROM reviews');
-                reviewCount = result.rows[0]?.count || 0;
+                reviewCount = parseInt(result.rows[0]?.count) || 0;
                 dbStatus = 'connected';
+                console.log('[HEALTH CHECK] Query exitosa, reviews:', reviewCount);
             } catch (dbError) {
+                console.error('[HEALTH CHECK] Error en query:', dbError.message);
                 dbStatus = 'error: ' + dbError.message;
             }
+        } else {
+            console.log('[HEALTH CHECK] Pool es null');
+            dbStatus = 'pool_null';
         }
         
         res.json({ 
@@ -77,6 +87,7 @@ app.get('/api/health', async (req, res) => {
             timestamp: new Date().toISOString()
         });
     } catch (error) {
+        console.error('[HEALTH CHECK] Error general:', error.message);
         res.status(500).json({ 
             status: 'error', 
             message: error.message,
