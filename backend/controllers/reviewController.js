@@ -21,7 +21,7 @@ const reviewController = {
                 return res.status(400).json({ error: 'Invalid media type' });
             }
 
-            if (rating && (rating < 1 || rating > 5)) {
+            if (rating !== null && rating !== undefined && (rating < 1 || rating > 5)) {
                 return res.status(400).json({ error: 'Rating must be between 1 and 5' });
             }
 

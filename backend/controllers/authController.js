@@ -88,7 +88,7 @@ const authController = {
             res.json({
                 message: 'Login exitoso',
                 token,
-                user: { id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar }
+                user: { id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar, role: user.role || 'user' }
             });
         } catch (error) {
             console.error('[LOGIN] ❌ Error en login:', error.message);

@@ -21,8 +21,8 @@ describe('User Model', () => {
 
             expect(result).toBe(1);
             expect(mockQuery).toHaveBeenCalledWith(
-                'INSERT INTO users (username, name, email, password) VALUES ($1, $2, $3, $4) RETURNING id',
-                ['testuser', 'Test User', 'test@example.com', 'hashedpassword']
+                'INSERT INTO users (username, name, email, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+                ['testuser', 'Test User', 'test@example.com', 'hashedpassword', 'user']
             );
         });
     });

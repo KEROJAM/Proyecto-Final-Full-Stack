@@ -198,8 +198,9 @@ describe('reviewController - Complete Review Tests', () => {
 
             await reviewController.getAll(mockReq, mockRes);
 
+            const expectedReviews = mockReviews.map(r => ({ ...r, reactions: {} }));
             expect(mockRes.json).toHaveBeenCalledWith(
-                expect.arrayContaining(mockReviews)
+                expect.arrayContaining(expectedReviews)
             );
         });
 
@@ -215,8 +216,9 @@ describe('reviewController - Complete Review Tests', () => {
 
             await reviewController.getAll(mockReq, mockRes);
 
+            const expectedReviews = mockReviews.map(r => ({ ...r, reactions: {} }));
             expect(mockRes.json).toHaveBeenCalledWith(
-                expect.arrayContaining(mockReviews)
+                expect.arrayContaining(expectedReviews)
             );
         });
 
