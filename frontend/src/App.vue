@@ -499,6 +499,26 @@ async function handleLogin() {
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
     currentUser.value = data.user
+    
+    // Verificar que el token es válido en el servidor
+    try {
+      const verifyResponse = await fetch(`${API_URL}/debug/verify-token`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${data.token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      const verifyData = await verifyResponse.json()
+      console.log('[LOGIN DEBUG] Token verification after login:', verifyData)
+      if (!verifyData.valid) {
+        console.error('[LOGIN DEBUG] ⚠️ TOKEN IS INVALID! Server could not verify it')
+        alert('WARNING: Token verification failed. JWT_SECRET might be misconfigured. You may need to logout and login again.')
+      }
+    } catch (verifyError) {
+      console.error('[LOGIN DEBUG] Could not verify token:', verifyError)
+    }
+    
     showAuthModal.value = false
     console.log('[LOGIN DEBUG] Token saved to localStorage:', localStorage.getItem('token')?.substring(0, 20) + '...')
   } catch (error) {
@@ -647,6 +667,30 @@ async function submitComment(reviewId) {
     const token = localStorage.getItem('token')
     console.log('[COMMENT DEBUG] Token in localStorage:', token ? `${token.substring(0, 20)}...` : 'MISSING')
     console.log('[COMMENT DEBUG] Current user:', currentUser.value?.id)
+    
+    // Verificar validez del token antes de enviar el comentario
+    if (token) {
+      try {
+        const verifyResponse = await fetch(`${API_URL}/debug/verify-token`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        const verifyData = await verifyResponse.json()
+        console.log('[COMMENT DEBUG] Token verification result:', verifyData)
+        if (!verifyData.valid) {
+          console.error('[COMMENT DEBUG] Token is INVALID on server side - you may need to re-login')
+          alert('Your token is invalid. Please log in again.')
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          return
+        }
+      } catch (verifyError) {
+        console.error('[COMMENT DEBUG] Error verifying token:', verifyError)
+      }
+    }
     
     const data = await apiRequest(`/reviews/${reviewId}/comments`, {
       method: 'POST',

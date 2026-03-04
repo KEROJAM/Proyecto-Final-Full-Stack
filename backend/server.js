@@ -10,6 +10,7 @@ const multer = require('multer');
 const axios = require('axios');
 const createConnectionPool = require('./database/connection');
 const coverService = require('./services/coverService');
+const { runMigrations } = require('./database/migrations');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -64,6 +65,34 @@ app.get('/api/debug/jwt', (req, res) => {
         jwt_secret_hash: secretHash,
         message: hasCustomSecret ? 'JWT_SECRET está configurado en vars de entorno' : 'USANDO VALOR POR DEFECTO - debes configurar JWT_SECRET en Vercel'
     });
+});
+
+app.post('/api/debug/verify-token', (req, res) => {
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+    const token = req.headers.authorization?.startsWith('Bearer ') 
+        ? req.headers.authorization.substring(7)
+        : null;
+    
+    if (!token) {
+        return res.status(400).json({ error: 'No token provided' });
+    }
+    
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        res.json({
+            valid: true,
+            decoded,
+            jwt_secret_hash: require('crypto').createHash('sha256').update(JWT_SECRET).digest('hex').substring(0, 8)
+        });
+    } catch (error) {
+        res.status(401).json({
+            valid: false,
+            error: error.message,
+            error_name: error.name,
+            jwt_secret_hash: require('crypto').createHash('sha256').update(JWT_SECRET).digest('hex').substring(0, 8)
+        });
+    }
 });
 
 app.get('/api/health', async (req, res) => {
@@ -240,6 +269,14 @@ async function startServer() {
     try {
         await createConnectionPool();
         console.log('Iniciando servidor...');
+        
+        // Ejecutar migraciones
+        console.log('✓ Ejecutando migraciones de BD...');
+        try {
+            await runMigrations();
+        } catch (migrationError) {
+            console.warn('⚠️  Advertencia en migraciones:', migrationError.message);
+        }
         
         const isVercel = process.env.VERCEL === '1';
         
