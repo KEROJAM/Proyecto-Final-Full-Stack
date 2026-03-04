@@ -43,7 +43,7 @@ const Reaction = {
             existing = result.rows;
         } else {
             const result = await db.query(
-                'SELECT id FROM reactions WHERE review_id = $1 AND user_id IS NULL AND emoji_type = $3',
+                'SELECT id FROM reactions WHERE review_id = $1 AND user_id IS NULL AND emoji_type = $2',
                 [reviewId, emojiType]
             );
             existing = result.rows;
