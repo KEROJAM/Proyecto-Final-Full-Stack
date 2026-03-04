@@ -49,8 +49,37 @@ app.use((req, res, next) => {
 
 require('./routes/index')(app);
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Servidor funcionando' });
+app.get('/api/health', async (req, res) => {
+    try {
+        const pool = await createConnectionPool();
+        let dbStatus = 'disconnected';
+        let reviewCount = 0;
+        
+        if (pool) {
+            try {
+                const result = await pool.query('SELECT COUNT(*) as count FROM reviews');
+                reviewCount = result.rows[0]?.count || 0;
+                dbStatus = 'connected';
+            } catch (dbError) {
+                dbStatus = 'error: ' + dbError.message;
+            }
+        }
+        
+        res.json({ 
+            status: 'ok', 
+            message: 'Servidor funcionando',
+            database: dbStatus,
+            reviewCount: reviewCount,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: error.message,
+            database: 'failed',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 app.get('/api/proxy-image', async (req, res) => {
