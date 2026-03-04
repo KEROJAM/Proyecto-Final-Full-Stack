@@ -28,7 +28,7 @@ const Review = {
             LEFT JOIN review_tag_map rtm ON r.id = rtm.review_id
             LEFT JOIN review_tags rt ON rtm.tag_id = rt.id
             WHERE r.id = $1
-            GROUP BY r.id
+            GROUP BY r.id, u.id, u.username, u.name, u.avatar
         `, [id]);
         return result.rows[0];
     },
@@ -42,7 +42,7 @@ const Review = {
             JOIN users u ON r.user_id = u.id
             LEFT JOIN review_tag_map rtm ON r.id = rtm.review_id
             LEFT JOIN review_tags rt ON rtm.tag_id = rt.id
-            GROUP BY r.id
+            GROUP BY r.id, u.id, u.username, u.name, u.avatar
             ORDER BY r.created_at DESC
             LIMIT $1 OFFSET $2
         `, [parseInt(limit), parseInt(offset)]);
@@ -58,7 +58,7 @@ const Review = {
             JOIN users u ON r.user_id = u.id
             LEFT JOIN review_tag_map rtm ON r.id = rtm.review_id
             LEFT JOIN review_tags rt ON rtm.tag_id = rt.id
-            GROUP BY r.id
+            GROUP BY r.id, u.id, u.username, u.name, u.avatar
             ORDER BY RANDOM()
             LIMIT $1
         `, [parseInt(limit)]);
@@ -75,29 +75,29 @@ const Review = {
             LEFT JOIN review_tag_map rtm ON r.id = rtm.review_id
             LEFT JOIN review_tags rt ON rtm.tag_id = rt.id
             WHERE r.user_id = $1
-            GROUP BY r.id
+            GROUP BY r.id, u.id, u.username, u.name, u.avatar
             ORDER BY r.created_at DESC
             LIMIT $2 OFFSET $3
         `, [userId, parseInt(limit), parseInt(offset)]);
         return result.rows;
     },
 
-    async findByMediaType(mediaType, limit = 50, offset = 0) {
-        const db = await this.getDb();
-        const result = await db.query(`
-            SELECT r.*, u.username, u.name, u.avatar,
-            STRING_AGG(DISTINCT rt.name, ',') as tags
-            FROM reviews r
-            JOIN users u ON r.user_id = u.id
-            LEFT JOIN review_tag_map rtm ON r.id = rtm.review_id
-            LEFT JOIN review_tags rt ON rtm.tag_id = rt.id
-            WHERE r.media_type = $1
-            GROUP BY r.id
-            ORDER BY r.created_at DESC
-            LIMIT $2 OFFSET $3
-        `, [mediaType, parseInt(limit), parseInt(offset)]);
-        return result.rows;
-    },
+     async findByMediaType(mediaType, limit = 50, offset = 0) {
+         const db = await this.getDb();
+         const result = await db.query(`
+             SELECT r.*, u.username, u.name, u.avatar,
+             STRING_AGG(DISTINCT rt.name, ',') as tags
+             FROM reviews r
+             JOIN users u ON r.user_id = u.id
+             LEFT JOIN review_tag_map rtm ON r.id = rtm.review_id
+             LEFT JOIN review_tags rt ON rtm.tag_id = rt.id
+             WHERE r.media_type = $1
+             GROUP BY r.id, u.id, u.username, u.name, u.avatar
+             ORDER BY r.created_at DESC
+             LIMIT $2 OFFSET $3
+         `, [mediaType, parseInt(limit), parseInt(offset)]);
+         return result.rows;
+     },
 
     async update(id, userId, data) {
         const db = await this.getDb();
