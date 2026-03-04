@@ -75,23 +75,32 @@ const reviewController = {
     async getRandom(req, res) {
         try {
             const limit = parseInt(req.query.limit) || 20;
+            console.log('[REVIEWS] Getting random reviews, limit:', limit);
+            
             const reviews = await Review.findRandom(limit);
+            console.log('[REVIEWS] Found', reviews.length, 'reviews');
             
             const reviewsWithReactions = await Promise.all(
                 reviews.map(async (review) => {
-                    const reactions = await Reaction.getByReviewId(review.id);
-                    let userReactions = [];
-                    if (req.user) {
-                        userReactions = await Reaction.getUserReactions(review.id, req.user.id);
+                    try {
+                        const reactions = await Reaction.getByReviewId(review.id);
+                        let userReactions = [];
+                        if (req.user) {
+                            userReactions = await Reaction.getUserReactions(review.id, req.user.id);
+                        }
+                        return { ...review, reactions, userReactions };
+                    } catch (err) {
+                        console.error('[REVIEWS] Error getting reactions for review', review.id, ':', err.message);
+                        return { ...review, reactions: { heart: 0, laughing: 0, crying: 0, surprised: 0 }, userReactions: [] };
                     }
-                    return { ...review, reactions, userReactions };
                 })
             );
 
             res.json(reviewsWithReactions);
         } catch (error) {
-            console.error('Error fetching random reviews:', error);
-            res.status(500).json({ error: 'Internal server error' });
+            console.error('[REVIEWS] Error fetching random reviews:', error.message);
+            console.error('[REVIEWS] Error stack:', error.stack);
+            res.status(500).json({ error: 'Internal server error', message: error.message });
         }
     },
 
