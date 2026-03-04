@@ -130,7 +130,8 @@ async function createConnectionPool() {
 }
 
 async function initPool() {
-
+  const isVercel = process.env.VERCEL === '1';
+  
   let config;
   if (process.env.DATABASE_URL) {
     const url = process.env.DATABASE_URL;
@@ -151,9 +152,9 @@ async function initPool() {
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'postgres',
       port: process.env.DB_PORT || 5432,
-      max: 20,
+      max: isVercel ? 1 : 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
+      connectionTimeoutMillis: isVercel ? 5000 : 10000
     };
   }
 
@@ -201,8 +202,11 @@ async function initPool() {
     return pool;
     
   } catch (error) {
-    console.error('Error de conexión:', error.message);
-    process.exit(1);
+    console.error('Error de conexión a la base de datos:', error.message);
+    if (!isVercel) {
+      process.exit(1);
+    }
+    return null;
   }
 }
 

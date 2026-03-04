@@ -2,7 +2,11 @@ const createConnectionPool = require('../database/connection');
 
 const User = {
     async getDb() {
-        return await createConnectionPool();
+        const db = await createConnectionPool();
+        if (!db) {
+            throw new Error('Base de datos no disponible');
+        }
+        return db;
     },
 
     async create(username, name, email, password) {

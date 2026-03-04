@@ -132,17 +132,23 @@ app.get('*', (req, res) => {
 
 async function startServer() {
     try {
-        const pool = await createConnectionPool();
-        console.log('Conectado a PostgreSQL');
+        await createConnectionPool();
+        console.log('Iniciando servidor...');
         
-        await updateCovers();
+        const isVercel = process.env.VERCEL === '1';
+        
+        if (!isVercel) {
+            await updateCovers();
+        }
         
         app.listen(PORT, () => {
             console.log(`Servidor corriendo en http://localhost:${PORT}`);
         });
     } catch (error) {
         console.error('Error al iniciar el servidor:', error.message);
-        process.exit(1);
+        app.listen(PORT, () => {
+            console.log(`Servidor corriendo (sin DB) en http://localhost:${PORT}`);
+        });
     }
 }
 
@@ -180,4 +186,10 @@ async function updateCovers() {
     }
 }
 
-startServer();
+const isVercel = process.env.VERCEL === '1';
+
+if (isVercel) {
+    module.exports = app;
+} else {
+    startServer();
+}
