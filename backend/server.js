@@ -10,6 +10,7 @@ const multer = require('multer');
 const axios = require('axios');
 const createConnectionPool = require('./database/connection');
 const coverService = require('./services/coverService');
+const { getJWTSecret, getJWTSecretInfo } = require('./config/jwt');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,15 +55,11 @@ app.use((req, res, next) => {
 require('./routes/index')(app);
 
 app.get('/api/debug/jwt', (req, res) => {
-    const crypto = require('crypto');
-    const secret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
-    const secretHash = crypto.createHash('sha256').update(secret).digest('hex').substring(0, 8);
-    const hasCustomSecret = !!process.env.JWT_SECRET;
-    
+    const jwtInfo = getJWTSecretInfo();
     res.json({
-        jwt_configured: hasCustomSecret,
-        jwt_secret_hash: secretHash,
-        message: hasCustomSecret ? 'JWT_SECRET está configurado en vars de entorno' : 'USANDO VALOR POR DEFECTO - debes configurar JWT_SECRET en Vercel'
+        jwt_configured: jwtInfo.configured,
+        jwt_secret_hash: jwtInfo.hash,
+        message: jwtInfo.message
     });
 });
 
@@ -72,43 +69,41 @@ app.post('/api/debug/verify-token', (req, res) => {
     const token = req.headers.authorization?.startsWith('Bearer ') 
         ? req.headers.authorization.substring(7)
         : null;
+    jwtSecret = getJWTSecret();
+    const token = req.headers.authorization?.startsWith('Bearer ') 
+        ? req.headers.authorization.substring(7)
+        : null;
     
     if (!token) {
         return res.status(400).json({ error: 'No token provided' });
     }
     
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, jwtSecret);
+        const jwtInfo = getJWTSecretInfo();
         res.json({
             valid: true,
             decoded,
-            jwt_secret_hash: require('crypto').createHash('sha256').update(JWT_SECRET).digest('hex').substring(0, 8)
+            jwt_secret_hash: jwtInfo.hash,
+            jwt_configured: jwtInfo.configured
         });
     } catch (error) {
+        const jwtInfo = getJWTSecretInfo();
         res.status(401).json({
             valid: false,
             error: error.message,
             error_name: error.name,
-            jwt_secret_hash: require('crypto').createHash('sha256').update(JWT_SECRET).digest('hex').substring(0, 8)
-        });
-    }
-});
-
-app.post('/api/debug/jwt-status', (req, res) => {
-    const crypto = require('crypto');
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+            jwt_secret_hash: jwtInfo.hash,
+          jwtSecret = getJWTSecret();
+    const jwtInfo = getJWTSecretInfo();
     const token = req.headers.authorization?.startsWith('Bearer ') 
         ? req.headers.authorization.substring(7)
         : req.body?.token;
     
-    const secretHash = crypto.createHash('sha256').update(JWT_SECRET).digest('hex').substring(0, 8);
-    const hasCustomSecret = !!process.env.JWT_SECRET;
-    
     let tokenAnalysis = null;
     if (token) {
         try {
-            const decoded = jwt.verify(token, JWT_SECRET);
+            const decoded = jwt.verify(token, jwtSecret);
             tokenAnalysis = {
                 valid: true,
                 decoded: decoded,
@@ -129,6 +124,10 @@ app.post('/api/debug/jwt-status', (req, res) => {
             VERCEL: process.env.VERCEL,
             DEBUG_AUTH: process.env.DEBUG_AUTH
         },
+        jwt_secret: {
+            configured: jwtInfo.configured,
+            hash: jwtInfo.hash,
+            defaultUsed: !jwtInfo.configured
         jwt_secret: {
             configured: hasCustomSecret,
             hash: secretHash,

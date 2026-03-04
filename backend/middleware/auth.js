@@ -1,8 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
-const DEBUG_AUTH = process.env.DEBUG_AUTH === '1';
+const { getJWTSecret, getJWTSecretInfo } = require('../config/jwt');
 
 const authMiddleware = async (req, res, next) => {
     try {
@@ -22,8 +20,9 @@ const authMiddleware = async (req, res, next) => {
         console.log('[AUTH MIDDLEWARE] Token preview:', tokenPreview);
 
         let decoded;
-        const verifySecret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
-        console.log('[AUTH MIDDLEWARE] JWT_SECRET configured:', !!process.env.JWT_SECRET);
+        const verifySecret = getJWTSecret();
+        const jwtInfo = getJWTSecretInfo();
+        console.log('[AUTH MIDDLEWARE] ' + jwtInfo.message);
         
         try {
             decoded = jwt.verify(token, verifySecret);
@@ -34,7 +33,8 @@ const authMiddleware = async (req, res, next) => {
                 message: e.message,
                 tokenPreview: tokenPreview,
                 path: req.originalUrl,
-                jwtSecretConfigured: !!process.env.JWT_SECRET
+                secretHash: jwtInfo.hash,
+                jwtSecretConfigured: jwtInfo.configured
             });
             throw e;
         }

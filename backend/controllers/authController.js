@@ -1,8 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+const { getJWTSecret, getJWTSecretInfo } = require('../config/jwt');
 
 const authController = {
     async register(req, res) {
@@ -35,7 +34,7 @@ const authController = {
             console.log('[REGISTER] Usuario creado con ID:', userId);
 
             console.log('[REGISTER] Generando JWT...');
-            const jwtSecret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+            const jwtSecret = getJWTSecret();
             const token = jwt.sign({ userId, username }, jwtSecret, { expiresIn: '24h' });
 
             console.log('[REGISTER] ✅ Registro exitoso para:', email);
@@ -80,10 +79,11 @@ const authController = {
                 return res.status(401).json({ error: 'Credenciales inválidas' });
             }
 
-            const jwtSecret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+            const jwtSecret = getJWTSecret();
             const token = jwt.sign({ userId: user.id, username: user.username }, jwtSecret, { expiresIn: '24h' });
 
-            console.log('[LOGIN] ✅ Login exitoso para:', user.id, '| JWT_SECRET configured:', !!process.env.JWT_SECRET);
+            const jwtInfo = getJWTSecretInfo();
+            console.log('[LOGIN] ✅ Login exitoso para:', user.id, '|', jwtInfo.message);
 
             res.json({
                 message: 'Login exitoso',
