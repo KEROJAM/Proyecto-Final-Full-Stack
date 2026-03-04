@@ -365,7 +365,6 @@ const mediaTypeOptions = [
 ]
 
 const userMenuOptions = [
-  { label: 'Profile', key: 'profile' },
   { label: 'Log out', key: 'logout' }
 ]
 
