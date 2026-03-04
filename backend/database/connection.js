@@ -132,6 +132,10 @@ async function createConnectionPool() {
 async function initPool() {
   const isVercel = process.env.VERCEL === '1';
   
+  console.log('Inicializando pool de conexión...');
+  console.log('VERCEL:', isVercel);
+  console.log('DATABASE_URL existe:', !!process.env.DATABASE_URL);
+  
   let config;
   if (process.env.DATABASE_URL) {
     const url = process.env.DATABASE_URL;
@@ -145,7 +149,9 @@ async function initPool() {
       password: params.password,
       ssl: { rejectUnauthorized: false }
     };
+    console.log('Host:', config.host, 'Port:', config.port, 'DB:', config.database);
   } else {
+    console.log('No hay DATABASE_URL, usando configuración manual');
     config = {
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'postgres',
