@@ -55,39 +55,77 @@ require('./routes/index')(app);
 
 app.get('/api/health', async (req, res) => {
     try {
-        console.log('[HEALTH CHECK] Iniciando...');
+        console.log('[HEALTH CHECK] ========== INICIANDO ==========');
         const pool = await createConnectionPool();
         let dbStatus = 'disconnected';
         let reviewCount = 0;
+        let reviewsWithCovers = 0;
+        let reviewsWithoutCovers = 0;
+        let reviewsData = [];
         let dbError = null;
         
         console.log('[HEALTH CHECK] Pool obtenido:', !!pool);
         
         if (pool) {
             try {
-                console.log('[HEALTH CHECK] Intentando query...');
-                const result = await pool.query('SELECT COUNT(*) as count FROM reviews');
-                reviewCount = parseInt(result.rows[0]?.count) || 0;
+                console.log('[HEALTH CHECK] Intentando query de conteo...');
+                const countResult = await pool.query('SELECT COUNT(*) as count FROM reviews');
+                reviewCount = parseInt(countResult.rows[0]?.count) || 0;
+                console.log('[HEALTH CHECK] Total de reviews:', reviewCount);
+                
+                console.log('[HEALTH CHECK] Obteniendo detalles de reviews...');
+                const detailsResult = await pool.query(
+                    'SELECT id, media_title, cover FROM reviews ORDER BY id LIMIT 20'
+                );
+                reviewsData = detailsResult.rows;
+                
+                reviewsWithCovers = reviewsData.filter(r => r.cover).length;
+                reviewsWithoutCovers = reviewsData.filter(r => !r.cover).length;
+                
+                console.log('[HEALTH CHECK] Reviews con covers:', reviewsWithCovers);
+                console.log('[HEALTH CHECK] Reviews sin covers:', reviewsWithoutCovers);
+                
+                reviewsData.forEach((review, idx) => {
+                    console.log(`[HEALTH CHECK] Review ${idx + 1}:`, {
+                        id: review.id,
+                        title: review.media_title,
+                        hasCover: !!review.cover,
+                        coverUrl: review.cover ? review.cover.substring(0, 60) + '...' : 'NULL'
+                    });
+                });
+                
                 dbStatus = 'connected';
-                console.log('[HEALTH CHECK] Query exitosa, reviews:', reviewCount);
-            } catch (dbError) {
-                console.error('[HEALTH CHECK] Error en query:', dbError.message);
-                dbStatus = 'error: ' + dbError.message;
+                console.log('[HEALTH CHECK] Query exitosa');
+            } catch (queryError) {
+                console.error('[HEALTH CHECK] Error en query:', queryError.message);
+                console.error('[HEALTH CHECK] Query error stack:', queryError.stack);
+                dbStatus = 'error: ' + queryError.message;
             }
         } else {
             console.log('[HEALTH CHECK] Pool es null');
             dbStatus = 'pool_null';
         }
         
+        console.log('[HEALTH CHECK] ========== RESPONDIENDO ==========');
         res.json({ 
             status: 'ok', 
             message: 'Servidor funcionando',
             database: dbStatus,
             reviewCount: reviewCount,
+            reviewsWithCovers: reviewsWithCovers,
+            reviewsWithoutCovers: reviewsWithoutCovers,
+            sampleReviews: reviewsData.map(r => ({
+                id: r.id,
+                title: r.media_title,
+                hasCover: !!r.cover,
+                coverLength: r.cover ? r.cover.length : 0,
+                coverDomain: r.cover ? new URL(r.cover).hostname : null
+            })),
             timestamp: new Date().toISOString()
         });
     } catch (error) {
         console.error('[HEALTH CHECK] Error general:', error.message);
+        console.error('[HEALTH CHECK] Error stack:', error.stack);
         res.status(500).json({ 
             status: 'error', 
             message: error.message,

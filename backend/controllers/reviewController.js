@@ -75,10 +75,21 @@ const reviewController = {
     async getRandom(req, res) {
         try {
             const limit = parseInt(req.query.limit) || 20;
-            console.log('[REVIEWS] Getting random reviews, limit:', limit);
+            console.log('[REVIEWS] ========== Getting random reviews ==========');
+            console.log('[REVIEWS] Limit:', limit);
             
             const reviews = await Review.findRandom(limit);
             console.log('[REVIEWS] Found', reviews.length, 'reviews');
+            
+            reviews.forEach((review, idx) => {
+                console.log(`[REVIEWS] Review ${idx + 1}:`, {
+                    id: review.id,
+                    title: review.media_title,
+                    hasCover: !!review.cover,
+                    coverUrl: review.cover ? review.cover.substring(0, 60) + '...' : 'NULL',
+                    coverLength: review.cover ? review.cover.length : 0
+                });
+            });
             
             const reviewsWithReactions = await Promise.all(
                 reviews.map(async (review) => {
@@ -96,6 +107,7 @@ const reviewController = {
                 })
             );
 
+            console.log('[REVIEWS] ========== Returning reviews with reactions ==========');
             res.json(reviewsWithReactions);
         } catch (error) {
             console.error('[REVIEWS] Error fetching random reviews:', error.message);
