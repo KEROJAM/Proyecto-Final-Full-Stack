@@ -147,7 +147,10 @@ async function initPool() {
       database: params.pathname?.replace('/', '') || 'postgres',
       user: params.username,
       password: params.password,
-      ssl: { rejectUnauthorized: false }
+      ssl: { rejectUnauthorized: false },
+      max: isVercel ? 1 : 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: isVercel ? 5000 : 10000
     };
     console.log('Host:', config.host, 'Port:', config.port, 'DB:', config.database);
   } else {
