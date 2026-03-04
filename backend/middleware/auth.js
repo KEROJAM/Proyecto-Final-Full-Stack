@@ -22,7 +22,13 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({ error: 'Usuario no encontrado' });
         }
         
-        req.user = { id: user.id, username: user.username, email: user.email, avatar: user.avatar };
+        req.user = { 
+            id: user.id, 
+            username: user.username, 
+            email: user.email, 
+            avatar: user.avatar,
+            role: user.role || 'user' // Por defecto 'user' si no tiene rol
+        };
         
         next();
     } catch (error) {

@@ -3,6 +3,7 @@ const reviewController = require('../controllers/reviewController');
 const reactionController = require('../controllers/reactionController');
 const commentController = require('../controllers/commentController');
 const authMiddleware = require('../middleware/auth');
+const adminRoutes = require('./admin');
 
 module.exports = (app) => {
     app.post('/api/auth/register', authController.register);
@@ -26,4 +27,7 @@ module.exports = (app) => {
     app.get('/api/reviews/:reviewId/comments', commentController.getByReview);
     app.post('/api/reviews/:reviewId/comments', authMiddleware, commentController.create);
     app.delete('/api/comments/:id', authMiddleware, commentController.delete);
+
+    // Rutas administrativas
+    adminRoutes(app);
 };
