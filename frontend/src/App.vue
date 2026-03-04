@@ -388,7 +388,24 @@ async function apiRequest(endpoint, options = {}) {
     ...options.headers
   }
   const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers })
-  const data = await response.json()
+  
+  // Mejorado: Verificar si la respuesta es JSON antes de parsear
+  const contentType = response.headers.get('content-type')
+  let data
+  
+  try {
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json()
+    } else {
+      const text = await response.text()
+      console.error(`API error: Expected JSON but got ${contentType || 'unknown'}`, text)
+      throw new Error(`Invalid response type: ${contentType || 'unknown'}`)
+    }
+  } catch (e) {
+    console.error(`Failed to parse response from ${endpoint}:`, e)
+    throw new Error(`Failed to parse API response: ${e.message}`)
+  }
+  
   if (!response.ok) throw new Error(data.error || 'Something went wrong')
   return data
 }
