@@ -2,7 +2,11 @@ const createConnectionPool = require('../database/connection');
 
 const Review = {
     async getDb() {
-        return await createConnectionPool();
+        const db = await createConnectionPool();
+        if (!db) {
+            throw new Error('Base de datos no disponible');
+        }
+        return db;
     },
 
     async create(userId, mediaType, mediaTitle, reviewText, rating = null, cover = null) {

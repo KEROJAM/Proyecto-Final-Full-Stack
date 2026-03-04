@@ -2,7 +2,11 @@ const createConnectionPool = require('../database/connection');
 
 const Comment = {
     async getDb() {
-        return await createConnectionPool();
+        const db = await createConnectionPool();
+        if (!db) {
+            throw new Error('Base de datos no disponible');
+        }
+        return db;
     },
 
     async create(reviewId, userId, commentText) {
