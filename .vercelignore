@@ -1,0 +1,12 @@
+# Don't ignore backend
+!backend
+
+# Ignore frontend dev files
+frontend/node_modules
+frontend/.vite
+
+# Ignore common dev files
+node_modules
+.git
+.env.local
+.env.*.local
