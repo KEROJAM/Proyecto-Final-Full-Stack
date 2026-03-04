@@ -1,8 +1,4 @@
 {
-  "build": {
-    "src": "frontend",
-    "dist": "dist"
-  },
   "routes": [
     {
       "handle": "filesystem"
