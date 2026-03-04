@@ -137,6 +137,65 @@ app.post('/api/debug/jwt-status', (req, res) => {
     });
 });
 
+// Endpoint para verificar estado de migraciones
+app.get('/api/debug/migration-status', async (req, res) => {
+    try {
+        const pool = await createConnectionPool();
+        const columnCheck = await pool.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'users'
+            ORDER BY ordinal_position
+        `);
+        
+        const columns = columnCheck.rows.map(r => r.column_name);
+        const hasRole = columns.includes('role');
+        const hasAvatar = columns.includes('avatar');
+        
+        // Intentar crear un usuario de prueba para verificar que las columnas existen
+        let testResult = { success: false, message: 'Not tested' };
+        try {
+            const testUsername = `test_${Date.now()}`;
+            const testEmail = `test_${Date.now()}@test.com`;
+            const testQuery = await pool.query(
+                'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id',
+                [testUsername, testEmail, 'test_password', 'user']
+            );
+            
+            // Deletear el usuario de prueba
+            if (testQuery.rows[0]) {
+                await pool.query('DELETE FROM users WHERE id = $1', [testQuery.rows[0].id]);
+                testResult = { success: true, message: 'Test insert/delete successful' };
+            }
+        } catch (testError) {
+            testResult = { success: false, message: testError.message };
+        }
+        
+        res.json({
+            status: 'success',
+            timestamp: new Date().toISOString(),
+            userTableColumns: {
+                total: columns.length,
+                all: columns,
+                critical: {
+                    role: hasRole ? '✅ exists' : '❌ MISSING',
+                    avatar: hasAvatar ? '✅ exists' : '❌ MISSING',
+                    password: columns.includes('password') ? '✅ exists' : '❌ MISSING',
+                    email: columns.includes('email') ? '✅ exists' : '❌ MISSING'
+                }
+            },
+            insertTest: testResult,
+            ready: hasRole && hasAvatar && testResult.success
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 app.get('/api/health', async (req, res) => {
     try {
         console.log('[HEALTH CHECK] ========== INICIANDO ==========');

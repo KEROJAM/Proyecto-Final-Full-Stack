@@ -108,43 +108,66 @@ let dbError = null;
 if (app !== baseApp) {
   console.log('[API] Adding database initialization middleware...');
   
-  // Middleware para asegurar que la BD está inicializada
+  // Inicializar DB al startup (no al primer request)
+  console.log('[API] Pre-initializing database at startup...');
+  (async () => {
+    try {
+      const createConnectionPool = require('../backend/database/connection');
+      console.log('[API] Calling createConnectionPool at startup...');
+      const pool = await createConnectionPool();
+      
+      if (!pool) {
+        throw new Error('Database pool is null after initialization');
+      }
+      
+      dbInitialized = true;
+      console.log('[API] ✅ Database pre-initialized at startup, pool ready');
+      
+      // Ejecutar una query simple para verificar que todo funciona
+      try {
+        const testResult = await pool.query('SELECT 1 as test');
+        console.log('[API] ✅ Database connectivity verified');
+      } catch (testError) {
+        console.warn('[API] Database connectivity test failed:', testError.message);
+      }
+    } catch (initError) {
+      dbError = initError;
+      console.error('[API] ❌ Database initialization failed at startup:', {
+        message: initError.message,
+        code: initError.code
+      });
+    }
+  })();
+  
+  // Middleware para verificar que la BD está lista
   app.use(async (req, res, next) => {
     try {
-      // Si ya hubo error previo, no intentar de nuevo
-      if (dbError) {
-        console.error('[API] DB error persists:', dbError.message);
+      // Si ya hubo error crítico, rechazar
+      if (dbError && new Date() - startupTime > 10000) {
+        // Después de 10 segundos, si aún hay error, es crítico
+        console.error('[API] DB error persists after startup:', dbError.message);
         return res.status(503).json({
           error: 'Database connection failed',
           message: dbError.message,
-          details: 'The database is not available. Check environment variables.',
+          details: 'The database is not available. Check DATABASE_URL and network connectivity.',
           timestamp: new Date().toISOString()
         });
       }
 
-      if (!dbInitialized && !initPromise) {
-        console.log('[API] First request, initializing database...');
-        const createConnectionPool = require('../backend/database/connection');
-        initPromise = createConnectionPool().catch(err => {
-          dbError = err;
-          throw err;
-        });
-      }
-      
+      // Si aún no se ha inicializado pero estamos dentro del período de gracia, esperar
       if (!dbInitialized && initPromise) {
         try {
+          console.log('[API] Waiting for database initialization...');
           const pool = await initPromise;
-          if (!pool) {
-            throw new Error('Database pool is null');
-          }
           dbInitialized = true;
-          console.log('[API] Database initialized successfully');
+          console.log('[API] Database initialized via middleware');
         } catch (poolError) {
           dbError = poolError;
           console.error('[API] Database initialization error:', poolError.message);
           return res.status(503).json({
             error: 'Database initialization failed',
             message: poolError.message,
+            details: poolError.detail || 'Check database credentials and connectivity',
             timestamp: new Date().toISOString()
           });
         }
@@ -161,6 +184,8 @@ if (app !== baseApp) {
       });
     }
   });
+  
+  const startupTime = new Date();
 
   // Middleware global de error para capturar cualquier error no manejado
   app.use((err, req, res, next) => {
