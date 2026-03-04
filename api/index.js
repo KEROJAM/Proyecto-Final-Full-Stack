@@ -25,6 +25,12 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Log de todas las peticiones para debuguear
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 // Exportar la app para que Vercel la use como función serverless
 module.exports = app;
 
