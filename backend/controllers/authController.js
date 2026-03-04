@@ -59,6 +59,10 @@ const authController = {
 
             const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '24h' });
 
+            if (process.env.DEBUG_AUTH === '1') {
+                console.log('[AUTH DEBUG] Login success for user:', user.id, '| JWT_SECRET configured:', !!process.env.JWT_SECRET);
+            }
+
             res.json({
                 message: 'Login exitoso',
                 token,

@@ -53,6 +53,19 @@ app.use((req, res, next) => {
 
 require('./routes/index')(app);
 
+app.get('/api/debug/jwt', (req, res) => {
+    const crypto = require('crypto');
+    const secret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+    const secretHash = crypto.createHash('sha256').update(secret).digest('hex').substring(0, 8);
+    const hasCustomSecret = !!process.env.JWT_SECRET;
+    
+    res.json({
+        jwt_configured: hasCustomSecret,
+        jwt_secret_hash: secretHash,
+        message: hasCustomSecret ? 'JWT_SECRET está configurado en vars de entorno' : 'USANDO VALOR POR DEFECTO - debes configurar JWT_SECRET en Vercel'
+    });
+});
+
 app.get('/api/health', async (req, res) => {
     try {
         console.log('[HEALTH CHECK] ========== INICIANDO ==========');
