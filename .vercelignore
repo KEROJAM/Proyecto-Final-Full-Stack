@@ -1,5 +1,6 @@
-# Don't ignore backend
+# Don't ignore backend and api
 !backend
+!api
 
 # Ignore frontend dev files
 frontend/node_modules
