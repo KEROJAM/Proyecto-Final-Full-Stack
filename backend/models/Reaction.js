@@ -1,11 +1,17 @@
 const createConnectionPool = require('../database/connection');
 
+let cachedPool = null;
+
 const Reaction = {
     async getDb() {
+        if (cachedPool) {
+            return cachedPool;
+        }
         const db = await createConnectionPool();
         if (!db) {
             throw new Error('Base de datos no disponible');
         }
+        cachedPool = db;
         return db;
     },
 

@@ -1,11 +1,23 @@
 const createConnectionPool = require('../database/connection');
 
+// Variable global para cachear el pool
+let cachedPool = null;
+
 const Review = {
     async getDb() {
+        // Si ya tenemos un pool cacheado, devolverlo
+        if (cachedPool) {
+            return cachedPool;
+        }
+        
+        // Intentar obtener el pool
         const db = await createConnectionPool();
         if (!db) {
             throw new Error('Base de datos no disponible');
         }
+        
+        // Cachear el pool para futuras llamadas
+        cachedPool = db;
         return db;
     },
 
