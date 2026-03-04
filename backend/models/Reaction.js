@@ -25,10 +25,17 @@ const Reaction = {
 
     async remove(reviewId, userId, emojiType) {
         const db = await this.getDb();
-        await db.query(
-            'DELETE FROM reactions WHERE review_id = $1 AND user_id = $2 AND emoji_type = $3',
-            [reviewId, userId, emojiType]
-        );
+        if (userId) {
+            await db.query(
+                'DELETE FROM reactions WHERE review_id = $1 AND user_id = $2 AND emoji_type = $3',
+                [reviewId, userId, emojiType]
+            );
+        } else {
+            await db.query(
+                'DELETE FROM reactions WHERE review_id = $1 AND user_id IS NULL AND emoji_type = $2',
+                [reviewId, emojiType]
+            );
+        }
     },
 
     async toggle(reviewId, userId, emojiType) {

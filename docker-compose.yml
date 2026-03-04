@@ -61,17 +61,5 @@ services:
       timeout: 5s
       retries: 5
 
-  startup:
-    image: curlimages/curl:latest
-    container_name: reviews-startup
-    restart: "no"
-    depends_on:
-      frontend:
-        condition: service_healthy
-    entrypoint: /bin/sh
-    command: -c "echo 'Application started successfully! Visit http://localhost:5173 to access the One Sentence Reviews app.' && exit 0"
-    environment:
-      - STARTUP_DELAY=5
-
 volumes:
   postgres_data:

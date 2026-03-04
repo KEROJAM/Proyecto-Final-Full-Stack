@@ -54,11 +54,13 @@ CREATE TABLE IF NOT EXISTS reactions (
     emoji_type VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (review_id, COALESCE(user_id, 0), emoji_type)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_review_id_reactions ON reactions(review_id);
+-- Crear constraint UNIQUE personalizado que maneje NULL correctamente
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_reactions ON reactions(review_id, user_id, emoji_type) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_reactions_anon ON reactions(review_id, emoji_type) WHERE user_id IS NULL;
+
 
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,
@@ -235,6 +237,47 @@ async function initPool() {
       console.log('[DB] Datos iniciales insertados');
     } else {
       console.log('[DB] Las tablas ya existen');
+      
+      // Migración: Verificar si la tabla reactions tiene el constraint viejo
+      try {
+        const constraintCheck = await dbConn.query(`
+          SELECT constraint_name FROM information_schema.table_constraints 
+          WHERE table_name = 'reactions' AND constraint_type = 'UNIQUE'
+        `);
+        
+        if (constraintCheck.rows.length > 0) {
+          console.log('[DB] Detectado constraint UNIQUE viejo en reactions, aplicando migración...');
+          
+          // Recrear la tabla reactions con los índices correctos
+          await dbConn.query('DROP TABLE IF EXISTS reactions CASCADE');
+          const statements = `
+            CREATE TABLE reactions (
+                id SERIAL PRIMARY KEY,
+                review_id INT NOT NULL,
+                user_id INT DEFAULT NULL,
+                emoji_type VARCHAR(20) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            
+            CREATE UNIQUE INDEX idx_unique_reactions ON reactions(review_id, user_id, emoji_type) WHERE user_id IS NOT NULL;
+            CREATE UNIQUE INDEX idx_unique_reactions_anon ON reactions(review_id, emoji_type) WHERE user_id IS NULL;
+            CREATE INDEX idx_review_id_reactions ON reactions(review_id);
+          `.split(';').map(s => s.trim()).filter(s => s);
+          
+          for (const stmt of statements) {
+            try {
+              await dbConn.query(stmt);
+            } catch (e) {
+              console.warn('[DB] Advertencia migración:', e.message);
+            }
+          }
+          console.log('[DB] Migración de reactions completada');
+        }
+      } catch (e) {
+        console.log('[DB] No se necesita migración de reactions');
+      }
     }
 
     dbConn.release();
