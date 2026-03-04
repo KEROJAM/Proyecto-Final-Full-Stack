@@ -479,11 +479,21 @@ async function handleLogin() {
       method: 'POST',
       body: JSON.stringify(loginForm.value)
     })
+    console.log('[LOGIN DEBUG] Response from /auth/login:', data)
+    console.log('[LOGIN DEBUG] data.token:', data?.token ? `${data.token.substring(0, 20)}...` : 'UNDEFINED')
+    console.log('[LOGIN DEBUG] data.user:', data?.user)
+    
+    if (!data.token) {
+      throw new Error('Login response missing token field')
+    }
+    
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
     currentUser.value = data.user
     showAuthModal.value = false
+    console.log('[LOGIN DEBUG] Token saved to localStorage:', localStorage.getItem('token')?.substring(0, 20) + '...')
   } catch (error) {
+    console.error('[LOGIN DEBUG] Login error:', error)
     alert(error.message)
   } finally {
     authLoading.value = false
@@ -625,6 +635,10 @@ async function submitComment(reviewId) {
   if (!commentText || commentText.trim() === '') return
   
   try {
+    const token = localStorage.getItem('token')
+    console.log('[COMMENT DEBUG] Token in localStorage:', token ? `${token.substring(0, 20)}...` : 'MISSING')
+    console.log('[COMMENT DEBUG] Current user:', currentUser.value?.id)
+    
     const data = await apiRequest(`/reviews/${reviewId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ comment_text: commentText })
@@ -635,6 +649,7 @@ async function submitComment(reviewId) {
     }
     commentInputs.value[reviewId] = ''
   } catch (error) {
+    console.error('[COMMENT DEBUG] Comment submission error:', error)
     alert(error.message)
   }
 }
