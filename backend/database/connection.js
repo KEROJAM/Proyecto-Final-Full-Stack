@@ -132,35 +132,42 @@ async function createConnectionPool() {
 async function initPool() {
   const isVercel = process.env.VERCEL === '1';
   
-  console.log('Inicializando pool de conexión...');
-  console.log('VERCEL:', isVercel);
-  console.log('DATABASE_URL existe:', !!process.env.DATABASE_URL);
+  console.log('[DB] Inicializando pool de conexión...');
+  console.log('[DB] VERCEL:', isVercel);
+  console.log('[DB] DATABASE_URL existe:', !!process.env.DATABASE_URL);
   
   let config;
   if (process.env.DATABASE_URL) {
     const url = process.env.DATABASE_URL;
-    console.log('DATABASE_URL (primeros 50 chars):', url.substring(0, 50) + '...');
+    console.log('[DB] Parseando DATABASE_URL...');
+    console.log('[DB] DATABASE_URL (primeros 50 chars):', url.substring(0, 50) + '...');
     
-    const params = new URL(url);
-    const port = params.port || (url.includes('pooler') ? 6543 : 5432);
-    config = {
-      host: params.hostname,
-      port: parseInt(port),
-      database: params.pathname?.replace('/', '') || 'postgres',
-      user: params.username,
-      password: params.password,
-      ssl: { rejectUnauthorized: false },
-      max: isVercel ? 1 : 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: isVercel ? 5000 : 10000
-    };
-    console.log('Host:', config.host);
-    console.log('Port:', config.port);
-    console.log('Database:', config.database);
-    console.log('User:', config.user);
-    console.log('Is pooler:', url.includes('pooler'));
+    try {
+      const params = new URL(url);
+      const port = params.port || (url.includes('pooler') ? 6543 : 5432);
+      config = {
+        host: params.hostname,
+        port: parseInt(port),
+        database: params.pathname?.replace('/', '') || 'postgres',
+        user: params.username,
+        password: params.password,
+        ssl: { rejectUnauthorized: false },
+        max: isVercel ? 1 : 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: isVercel ? 5000 : 10000
+      };
+      console.log('[DB] Config parseada:');
+      console.log('[DB]   Host:', config.host);
+      console.log('[DB]   Port:', config.port);
+      console.log('[DB]   Database:', config.database);
+      console.log('[DB]   User:', config.user);
+      console.log('[DB]   Is pooler:', url.includes('pooler'));
+    } catch (parseError) {
+      console.error('[DB] Error parseando URL:', parseError.message);
+      throw parseError;
+    }
   } else {
-    console.log('No hay DATABASE_URL, usando configuración manual');
+    console.log('[DB] No hay DATABASE_URL, usando configuración manual');
     config = {
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'postgres',
@@ -174,62 +181,54 @@ async function initPool() {
   }
 
   try {
-    console.log('Creando pool con config:', {
-      host: config.host,
-      port: config.port,
-      database: config.database,
-      user: config.user,
-      max: config.max
-    });
-    
+    console.log('[DB] Creando Pool...');
     pool = new Pool(config);
-    console.log('Pool creado, intentando conectar...');
     
+    console.log('[DB] Pool creado, intentando obtener conexión...');
     const dbConn = await pool.connect();
-    console.log('Conexión exitosa a la base de datos');
+    console.log('[DB] Conexión exitosa a la base de datos');
 
-    console.log('Verificando tablas...');
+    console.log('[DB] Verificando tablas...');
     const tablesCheck = await dbConn.query(`
       SELECT table_name FROM information_schema.tables 
       WHERE table_schema = 'public'
     `);
 
     if (tablesCheck.rows.length === 0) {
-      console.log('Creando tablas...');
+      console.log('[DB] Creando tablas...');
       const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s);
       for (const stmt of statements) {
         try {
           await dbConn.query(stmt);
         } catch (e) {
-          console.warn('Advertencia:', e.message);
+          console.warn('[DB] Advertencia:', e.message);
         }
       }
-      console.log('Tablas creadas exitosamente');
+      console.log('[DB] Tablas creadas exitosamente');
 
-      console.log('Insertando datos iniciales...');
+      console.log('[DB] Insertando datos iniciales...');
       const seedStatements = SEED_DATA_SQL.split(';').map(s => s.trim()).filter(s => s);
       for (const stmt of seedStatements) {
         try {
           await dbConn.query(stmt);
         } catch (e) {
-          console.warn('Advertencia seed:', e.message);
+          console.warn('[DB] Advertencia seed:', e.message);
         }
       }
-      console.log('Datos iniciales insertados');
+      console.log('[DB] Datos iniciales insertados');
     } else {
-      console.log('Las tablas ya existen');
+      console.log('[DB] Las tablas ya existen');
     }
 
     dbConn.release();
 
-    console.log('\n🎉 Base de datos lista!');
+    console.log('[DB] 🎉 Base de datos lista!');
 
     return pool;
     
   } catch (error) {
-    console.error('Error de conexión a la base de datos:', error.message);
-    console.error('Error completo:', error);
-    console.error('Error stack:', error.stack);
+    console.error('[DB] Error de conexión a la base de datos:', error.message);
+    console.error('[DB] Error stack:', error.stack);
     if (!isVercel) {
       process.exit(1);
     }
@@ -247,3 +246,4 @@ module.exports.closePool = async () => {
     poolPromise = null;
   }
 };
+
