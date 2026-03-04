@@ -256,6 +256,28 @@ async function initPool() {
     } else {
       console.log('[DB] Las tablas ya existen');
       
+      // Migración: Agregar columna role a tabla users si no existe
+      try {
+        const roleCheck = await dbConn.query(`
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'role'
+        `);
+        
+        if (roleCheck.rows.length === 0) {
+          console.log('[DB] ⚠️  Columna "role" no existe en tabla "users", agregando...');
+          try {
+            await dbConn.query('ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT \'user\'');
+            console.log('[DB] ✅ Columna "role" agregada exitosamente');
+          } catch (alterError) {
+            console.warn('[DB] Advertencia al agregar columna role:', alterError.message);
+          }
+        } else {
+          console.log('[DB] ✅ Columna "role" ya existe en tabla "users"');
+        }
+      } catch (e) {
+        console.warn('[DB] Error verificando columna role:', e.message);
+      }
+      
       // Migración: Verificar si la tabla reactions tiene el constraint viejo
       try {
         const constraintCheck = await dbConn.query(`

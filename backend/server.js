@@ -10,7 +10,6 @@ const multer = require('multer');
 const axios = require('axios');
 const createConnectionPool = require('./database/connection');
 const coverService = require('./services/coverService');
-const { runMigrations } = require('./database/migrations');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -312,16 +311,9 @@ app.get('*', (req, res) => {
 
 async function startServer() {
     try {
-        await createConnectionPool();
         console.log('Iniciando servidor...');
-        
-        // Ejecutar migraciones
-        console.log('✓ Ejecutando migraciones de BD...');
-        try {
-            await runMigrations();
-        } catch (migrationError) {
-            console.warn('⚠️  Advertencia en migraciones:', migrationError.message);
-        }
+        await createConnectionPool();
+        console.log('✓ Base de datos conectada y migraciones ejecutadas');
         
         const isVercel = process.env.VERCEL === '1';
         
