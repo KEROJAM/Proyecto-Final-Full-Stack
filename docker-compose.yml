@@ -30,6 +30,7 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: one_sentence_reviews
       DB_PORT: 5432
+      DB_SSL: "false"
       PORT: 3001
     ports:
       - "3001:3001"

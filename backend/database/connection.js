@@ -155,56 +155,73 @@ async function initPool() {
   console.log('[DB] VERCEL:', isVercel);
   console.log('[DB] DATABASE_URL existe:', !!process.env.DATABASE_URL);
   
-  let config;
-  if (process.env.DATABASE_URL) {
-    const url = process.env.DATABASE_URL;
-    console.log('[DB] Parseando DATABASE_URL...');
-    console.log('[DB] DATABASE_URL (primeros 50 chars):', url.substring(0, 50) + '...');
-    
-    try {
-      const params = new URL(url);
-      const port = params.port || (url.includes('pooler') ? 6543 : 5432);
-      config = {
-        host: params.hostname,
-        port: parseInt(port),
-        database: params.pathname?.replace('/', '') || 'postgres',
-        user: params.username,
-        password: params.password,
-        ssl: { rejectUnauthorized: false },
-        max: isVercel ? 1 : 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: isVercel ? 5000 : 10000
-      };
-      console.log('[DB] Config parseada:');
-      console.log('[DB]   Host:', config.host);
-      console.log('[DB]   Port:', config.port);
-      console.log('[DB]   Database:', config.database);
-      console.log('[DB]   User:', config.user);
-      console.log('[DB]   Is pooler:', url.includes('pooler'));
-    } catch (parseError) {
-      console.error('[DB] Error parseando URL:', parseError.message);
-      throw parseError;
-    }
-  } else {
-    console.log('[DB] No hay DATABASE_URL, usando configuración manual');
-    config = {
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'postgres',
-      port: process.env.DB_PORT || 5432,
-      max: isVercel ? 1 : 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: isVercel ? 5000 : 10000
-    };
-  }
+   let config;
+   if (process.env.DATABASE_URL) {
+     const url = process.env.DATABASE_URL;
+     console.log('[DB] Parseando DATABASE_URL...');
+     console.log('[DB] DATABASE_URL (primeros 50 chars):', url.substring(0, 50) + '...');
+     
+     try {
+       const params = new URL(url);
+       const port = params.port || (url.includes('pooler') ? 6543 : 5432);
+       config = {
+         host: params.hostname,
+         port: parseInt(port),
+         database: params.pathname?.replace('/', '') || 'postgres',
+         user: params.username,
+         password: params.password,
+         ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
+         max: isVercel ? 1 : 20,
+         idleTimeoutMillis: 30000,
+         connectionTimeoutMillis: isVercel ? 5000 : 10000
+       };
+       console.log('[DB] Config parseada:');
+       console.log('[DB]   Host:', config.host);
+       console.log('[DB]   Port:', config.port);
+       console.log('[DB]   Database:', config.database);
+       console.log('[DB]   User:', config.user);
+       console.log('[DB]   Is pooler:', url.includes('pooler'));
+       console.log('[DB]   SSL:', config.ssl);
+     } catch (parseError) {
+       console.error('[DB] Error parseando URL:', parseError.message);
+       throw parseError;
+     }
+   } else {
+     console.log('[DB] No hay DATABASE_URL, usando configuración manual');
+     config = {
+       host: process.env.DB_HOST || 'localhost',
+       user: process.env.DB_USER || 'postgres',
+       password: process.env.DB_PASSWORD || 'postgres',
+       database: process.env.DB_NAME || 'postgres',
+       port: process.env.DB_PORT || 5432,
+       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+       max: isVercel ? 1 : 20,
+       idleTimeoutMillis: 30000,
+       connectionTimeoutMillis: isVercel ? 5000 : 10000
+     };
+   }
 
   try {
     console.log('[DB] Creando Pool...');
     pool = new Pool(config);
     
     console.log('[DB] Pool creado, intentando obtener conexión...');
-    const dbConn = await pool.connect();
+    let dbConn;
+    try {
+      dbConn = await pool.connect();
+    } catch (connError) {
+      // Si falla con SSL, intentar sin SSL
+      if (connError.message.includes('SSL') || connError.message.includes('ssl')) {
+        console.warn('[DB] Fallo con SSL, intentando sin SSL...');
+        await pool.end();
+        config.ssl = false;
+        pool = new Pool(config);
+        dbConn = await pool.connect();
+      } else {
+        throw connError;
+      }
+    }
+    
     console.log('[DB] Conexión exitosa a la base de datos');
 
     console.log('[DB] Verificando tablas...');
