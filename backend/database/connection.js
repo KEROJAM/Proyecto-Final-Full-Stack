@@ -119,6 +119,23 @@ INSERT INTO review_tag_map (review_id, tag_id) VALUES
     (9, 1),
     (10, 1)
 ON CONFLICT DO NOTHING;
+
+-- Update covers for existing reviews (migration)
+UPDATE reviews SET cover = 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg' WHERE media_title = 'Dune: Part Two';
+UPDATE reviews SET cover = 'https://images-na.ssl-images-amazon.com/images/I/81wgcld4wxL.jpg' WHERE media_title = 'Atomic Habits';
+UPDATE reviews SET cover = 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000042508/box.png' WHERE media_title = 'Hades';
+UPDATE reviews SET cover = 'https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg' WHERE media_title = 'Breaking Bad';
+UPDATE reviews SET cover = 'https://upload.wikimedia.org/wikipedia/en/a/a7/Random_Access_Memories.jpg' WHERE media_title = 'Random Access Memories';
+UPDATE reviews SET cover = 'https://images-na.ssl-images-amazon.com/images/I/91vS2Ph2S5L.jpg' WHERE media_title = 'Project Hail Mary';
+UPDATE reviews SET cover = 'https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg' WHERE media_title = 'Everything Everywhere All At Once';
+UPDATE reviews SET cover = 'https://image.tmdb.org/t/p/w500/qWnJzyZhyy74gjpSjIXWmuk0ifX.jpg' WHERE media_title = 'The Office';
+UPDATE reviews SET cover = 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000037653/box.png' WHERE media_title = 'Stardew Valley';
+UPDATE reviews SET cover = 'https://upload.wikimedia.org/wikipedia/en/7/71/Blue_Moon_%28Young_Thug_album%29.jpg' WHERE media_title = 'Blue Moon';
+UPDATE reviews SET cover = 'https://images-na.ssl-images-amazon.com/images/I/81Dky+tyvqL.jpg' WHERE media_title = 'The Psychology of Money';
+UPDATE reviews SET cover = 'https://image.api.nintendo.com/v1/cat_box/repo/np/pl/70010000061369/box.png' WHERE media_title = 'Elden Ring';
+UPDATE reviews SET cover = 'https://upload.wikimedia.org/wikipedia/en/a/a9/Starboy_The_Weeknd_album_cover.png' WHERE media_title = 'Starboy';
+UPDATE reviews SET cover = 'https://image.tmdb.org/t/p/w500/o7qi2097KejWCO1q2z1Pg85oi82.jpg' WHERE media_title = 'Stranger Things';
+UPDATE reviews SET cover = 'https://image.tmdb.org/t/p/w500/8Gxv8kSoNmQQciqVTXAwaay6OnO.jpg' WHERE media_title = 'Oppenheimer';
 `;
 
 async function createConnectionPool() {
