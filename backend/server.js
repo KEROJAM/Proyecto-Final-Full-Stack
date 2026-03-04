@@ -219,6 +219,61 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
+// Endpoint para ejecutar migración de DB manualmente
+app.post('/api/migrate', async (req, res) => {
+    try {
+        const pool = await createConnectionPool();
+        const migrations = [];
+
+        // Migración 1: Agregar columna role si no existe
+        try {
+            const roleCheck = await pool.query(`
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'users' AND column_name = 'role'
+            `);
+            
+            if (roleCheck.rows.length === 0) {
+                await pool.query('ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT \'user\'');
+                migrations.push({ migration: 'add_role_column', status: 'success', message: 'Column role added to users table' });
+            } else {
+                migrations.push({ migration: 'add_role_column', status: 'skipped', message: 'Column role already exists' });
+            }
+        } catch (e) {
+            migrations.push({ migration: 'add_role_column', status: 'error', message: e.message });
+        }
+
+        // Migración 2: Agregar columna avatar si no existe
+        try {
+            const avatarCheck = await pool.query(`
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'users' AND column_name = 'avatar'
+            `);
+            
+            if (avatarCheck.rows.length === 0) {
+                await pool.query('ALTER TABLE users ADD COLUMN avatar VARCHAR(255) DEFAULT NULL');
+                migrations.push({ migration: 'add_avatar_column', status: 'success', message: 'Column avatar added to users table' });
+            } else {
+                migrations.push({ migration: 'add_avatar_column', status: 'skipped', message: 'Column avatar already exists' });
+            }
+        } catch (e) {
+            migrations.push({ migration: 'add_avatar_column', status: 'error', message: e.message });
+        }
+
+        res.json({ 
+            status: 'success',
+            message: 'Migrations executed',
+            migrations: migrations,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 app.get('/api/proxy-image', async (req, res) => {
     try {
         let imageUrl = req.query.url;
