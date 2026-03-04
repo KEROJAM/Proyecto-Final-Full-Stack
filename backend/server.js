@@ -1,4 +1,8 @@
-require('dotenv').config();
+// Cargar variables de entorno (solo si no están ya cargadas)
+if (!process.env.DATABASE_URL && !process.env.VERCEL) {
+  require('dotenv').config();
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
