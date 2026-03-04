@@ -65,11 +65,7 @@ app.get('/api/debug/jwt', (req, res) => {
 
 app.post('/api/debug/verify-token', (req, res) => {
     const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
-    const token = req.headers.authorization?.startsWith('Bearer ') 
-        ? req.headers.authorization.substring(7)
-        : null;
-    jwtSecret = getJWTSecret();
+    const jwtSecret = getJWTSecret();
     const token = req.headers.authorization?.startsWith('Bearer ') 
         ? req.headers.authorization.substring(7)
         : null;
@@ -94,7 +90,14 @@ app.post('/api/debug/verify-token', (req, res) => {
             error: error.message,
             error_name: error.name,
             jwt_secret_hash: jwtInfo.hash,
-          jwtSecret = getJWTSecret();
+            jwt_configured: jwtInfo.configured
+        });
+    }
+});
+
+app.post('/api/debug/jwt-status', (req, res) => {
+    const jwt = require('jsonwebtoken');
+    const jwtSecret = getJWTSecret();
     const jwtInfo = getJWTSecretInfo();
     const token = req.headers.authorization?.startsWith('Bearer ') 
         ? req.headers.authorization.substring(7)
@@ -128,10 +131,6 @@ app.post('/api/debug/verify-token', (req, res) => {
             configured: jwtInfo.configured,
             hash: jwtInfo.hash,
             defaultUsed: !jwtInfo.configured
-        jwt_secret: {
-            configured: hasCustomSecret,
-            hash: secretHash,
-            defaultUsed: !hasCustomSecret
         },
         token_analysis: tokenAnalysis,
         available_env_vars: Object.keys(process.env).filter(k => k.includes('JWT') || k.includes('SECRET') || k.includes('DB'))
@@ -368,8 +367,10 @@ async function updateCovers() {
 const isVercel = process.env.VERCEL === '1';
 
 if (isVercel) {
+    // En Vercel: exportar app y no hacer app.listen()
     module.exports = app;
-    module.exports.getApp = app;
 } else {
+    // En local: exportar app Y llamar a startServer()
+    module.exports = app;
     startServer();
 }
