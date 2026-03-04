@@ -95,6 +95,51 @@ app.post('/api/debug/verify-token', (req, res) => {
     }
 });
 
+app.post('/api/debug/jwt-status', (req, res) => {
+    const crypto = require('crypto');
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+    const token = req.headers.authorization?.startsWith('Bearer ') 
+        ? req.headers.authorization.substring(7)
+        : req.body?.token;
+    
+    const secretHash = crypto.createHash('sha256').update(JWT_SECRET).digest('hex').substring(0, 8);
+    const hasCustomSecret = !!process.env.JWT_SECRET;
+    
+    let tokenAnalysis = null;
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            tokenAnalysis = {
+                valid: true,
+                decoded: decoded,
+                expiresAt: new Date(decoded.exp * 1000)
+            };
+        } catch (error) {
+            tokenAnalysis = {
+                valid: false,
+                error: error.message,
+                errorName: error.name
+            };
+        }
+    }
+    
+    res.json({
+        environment: {
+            NODE_ENV: process.env.NODE_ENV,
+            VERCEL: process.env.VERCEL,
+            DEBUG_AUTH: process.env.DEBUG_AUTH
+        },
+        jwt_secret: {
+            configured: hasCustomSecret,
+            hash: secretHash,
+            defaultUsed: !hasCustomSecret
+        },
+        token_analysis: tokenAnalysis,
+        available_env_vars: Object.keys(process.env).filter(k => k.includes('JWT') || k.includes('SECRET') || k.includes('DB'))
+    });
+});
+
 app.get('/api/health', async (req, res) => {
     try {
         console.log('[HEALTH CHECK] ========== INICIANDO ==========');

@@ -7,9 +7,10 @@ const DEBUG_AUTH = process.env.DEBUG_AUTH === '1';
 const authMiddleware = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+        console.log('[AUTH MIDDLEWARE] Verificando token para:', req.method, req.originalUrl);
 
         if (!authHeader) {
-            if (DEBUG_AUTH) console.error('[AUTH DEBUG] Missing Authorization header for', req.method, req.originalUrl);
+            console.error('[AUTH MIDDLEWARE] ❌ Missing Authorization header');
             return res.status(401).json({ error: 'No se proporcionó token de autenticación' });
         }
 
@@ -17,23 +18,34 @@ const authMiddleware = async (req, res, next) => {
             ? authHeader.substring(7)
             : authHeader;
 
+        const tokenPreview = token ? `${token.substring(0, 20)}...` : null;
+        console.log('[AUTH MIDDLEWARE] Token preview:', tokenPreview);
+
         let decoded;
+        const verifySecret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+        console.log('[AUTH MIDDLEWARE] JWT_SECRET configured:', !!process.env.JWT_SECRET);
+        
         try {
-            decoded = jwt.verify(token, JWT_SECRET);
+            decoded = jwt.verify(token, verifySecret);
+            console.log('[AUTH MIDDLEWARE] ✅ JWT verificado exitosamente para userId:', decoded.userId);
         } catch (e) {
-            if (DEBUG_AUTH) {
-                const preview = token ? `${token.substring(0, 10)}...` : null;
-                console.error('[AUTH DEBUG] JWT verification failed', { errorName: e.name, message: e.message, tokenPreview: preview, path: req.originalUrl });
-            }
+            console.error('[AUTH MIDDLEWARE] ❌ JWT verification failed:', {
+                errorName: e.name,
+                message: e.message,
+                tokenPreview: tokenPreview,
+                path: req.originalUrl,
+                jwtSecretConfigured: !!process.env.JWT_SECRET
+            });
             throw e;
         }
 
         const user = await User.findById(decoded.userId);
         if (!user) {
-            if (DEBUG_AUTH) console.error('[AUTH DEBUG] User not found for token userId:', decoded.userId);
+            console.error('[AUTH MIDDLEWARE] ❌ User not found for userId:', decoded.userId);
             return res.status(401).json({ error: 'Usuario no encontrado' });
         }
 
+        console.log('[AUTH MIDDLEWARE] ✅ Usuario encontrado:', user.id, user.username);
         req.user = {
             id: user.id,
             username: user.username,
@@ -41,13 +53,21 @@ const authMiddleware = async (req, res, next) => {
             avatar: user.avatar,
             role: user.role || 'user'
         };
+        req.userId = user.id;
 
         next();
     } catch (error) {
+        console.error('[AUTH MIDDLEWARE] ❌ Final error:', {
+            name: error.name,
+            message: error.message
+        });
         if (error.name === 'TokenExpiredError') {
             return res.status(401).json({ error: 'Token expirado' });
         }
-        return res.status(401).json({ error: 'Token inválido' });
+        return res.status(401).json({ 
+            error: 'Token inválido',
+            details: error.message
+        });
     }
 };
 

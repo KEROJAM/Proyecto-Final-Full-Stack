@@ -8,60 +8,82 @@ const authController = {
     async register(req, res) {
         try {
             const { username, name, email, password } = req.body;
+            console.log('[REGISTER] Iniciando registro para:', email);
 
             if (!username || !email || !password) {
+                console.warn('[REGISTER] Campos faltantes:', { username: !!username, email: !!email, password: !!password });
                 return res.status(400).json({ error: 'Todos los campos son requeridos' });
             }
 
             const existingUser = await User.findByEmail(email);
             if (existingUser) {
+                console.warn('[REGISTER] Email ya existe:', email);
                 return res.status(400).json({ error: 'El email ya está registrado' });
             }
 
             const existingUsername = await User.findByUsername(username);
             if (existingUsername) {
+                console.warn('[REGISTER] Username ya existe:', username);
                 return res.status(400).json({ error: 'El nombre de usuario ya está en uso' });
             }
 
+            console.log('[REGISTER] Hasheando password...');
             const hashedPassword = await bcrypt.hash(password, 10);
+            
+            console.log('[REGISTER] Creando usuario en BD...');
             const userId = await User.create(username, name || null, email, hashedPassword);
+            console.log('[REGISTER] Usuario creado con ID:', userId);
 
-            const token = jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: '24h' });
+            console.log('[REGISTER] Generando JWT...');
+            const jwtSecret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+            const token = jwt.sign({ userId, username }, jwtSecret, { expiresIn: '24h' });
 
+            console.log('[REGISTER] ✅ Registro exitoso para:', email);
             res.status(201).json({
                 message: 'Usuario creado exitosamente',
                 token,
                 user: { id: userId, username, name, email }
             });
         } catch (error) {
-            console.error('Error en register:', error);
-            res.status(500).json({ error: 'Error al registrar usuario' });
+            console.error('[REGISTER] ❌ Error en register:', {
+                message: error.message,
+                code: error.code,
+                detail: error.detail,
+                stack: error.stack
+            });
+            res.status(500).json({ 
+                error: 'Error al registrar usuario',
+                details: error.message
+            });
         }
     },
 
     async login(req, res) {
         try {
             const { email, password } = req.body;
+            console.log('[LOGIN] Iniciando login para:', email);
 
             if (!email || !password) {
+                console.warn('[LOGIN] Campos faltantes');
                 return res.status(400).json({ error: 'Email y contraseña son requeridos' });
             }
 
             const user = await User.findByEmail(email);
             if (!user) {
+                console.warn('[LOGIN] Usuario no encontrado:', email);
                 return res.status(401).json({ error: 'Credenciales inválidas' });
             }
 
             const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
+                console.warn('[LOGIN] Password inválido para:', email);
                 return res.status(401).json({ error: 'Credenciales inválidas' });
             }
 
-            const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '24h' });
+            const jwtSecret = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here_change_in_production';
+            const token = jwt.sign({ userId: user.id, username: user.username }, jwtSecret, { expiresIn: '24h' });
 
-            if (process.env.DEBUG_AUTH === '1') {
-                console.log('[AUTH DEBUG] Login success for user:', user.id, '| JWT_SECRET configured:', !!process.env.JWT_SECRET);
-            }
+            console.log('[LOGIN] ✅ Login exitoso para:', user.id, '| JWT_SECRET configured:', !!process.env.JWT_SECRET);
 
             res.json({
                 message: 'Login exitoso',
@@ -69,8 +91,11 @@ const authController = {
                 user: { id: user.id, username: user.username, name: user.name, email: user.email, avatar: user.avatar }
             });
         } catch (error) {
-            console.error('Error en login:', error);
-            res.status(500).json({ error: 'Error al iniciar sesión' });
+            console.error('[LOGIN] ❌ Error en login:', error.message);
+            res.status(500).json({ 
+                error: 'Error al iniciar sesión',
+                details: error.message
+            });
         }
     },
 

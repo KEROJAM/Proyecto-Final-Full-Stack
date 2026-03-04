@@ -16,12 +16,28 @@ const User = {
     },
 
     async create(username, name, email, password, role = 'user') {
-        const db = await this.getDb();
-        const result = await db.query(
-            'INSERT INTO users (username, name, email, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [username, name, email, password, role]
-        );
-        return result.rows[0].id;
+        try {
+            console.log('[USER.CREATE] Iniciando creación de usuario:', { username, email, role });
+            const db = await this.getDb();
+            
+            const query = 'INSERT INTO users (username, name, email, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING id';
+            console.log('[USER.CREATE] Ejecutando query:', query);
+            console.log('[USER.CREATE] Parámetros:', { username, name, email, password: '***', role });
+            
+            const result = await db.query(query, [username, name, email, password, role]);
+            
+            console.log('[USER.CREATE] ✅ Usuario creado con ID:', result.rows[0].id);
+            return result.rows[0].id;
+        } catch (error) {
+            console.error('[USER.CREATE] ❌ Error al crear usuario:', {
+                message: error.message,
+                code: error.code,
+                detail: error.detail,
+                hint: error.hint,
+                stack: error.stack
+            });
+            throw error;
+        }
     },
 
     async findByEmail(email) {
