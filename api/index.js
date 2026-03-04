@@ -9,8 +9,25 @@ console.log('[API BOOT] Loading env from:', envPath);
 dotenv.config({ path: envPath });
 
 console.log('[API BOOT] Environment loaded');
-console.log('[API BOOT] DATABASE_URL:', process.env.DATABASE_URL ? 'present' : 'MISSING');
-console.log('[API BOOT] VERCEL:', process.env.VERCEL);
+console.log('[API BOOT] DATABASE_URL:', process.env.DATABASE_URL ? '✅ present' : '❌ MISSING');
+console.log('[API BOOT] JWT_SECRET:', process.env.JWT_SECRET ? '✅ configured' : '❌ USING DEFAULT');
+console.log('[API BOOT] VERCEL:', process.env.VERCEL || 'local');
+
+// Validar variables críticas en Vercel
+const isVercel = process.env.VERCEL === '1';
+if (isVercel) {
+  const missingVars = [];
+  if (!process.env.DATABASE_URL) missingVars.push('DATABASE_URL');
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your_super_secret_jwt_key_here_change_in_production') {
+    missingVars.push('JWT_SECRET');
+  }
+  
+  if (missingVars.length > 0) {
+    console.error('[API BOOT] ❌ CRITICAL ERROR: Missing environment variables in Vercel:');
+    missingVars.forEach(v => console.error(`  - ${v}`));
+    console.error('[API BOOT] Instructions: Configure these in Vercel Dashboard → Settings → Environment Variables');
+  }
+}
 
 let app;
 try {
@@ -24,6 +41,8 @@ try {
   // Crear una app de emergencia que devuelva el error
   const express = require('express');
   const fallbackApp = express();
+  fallbackApp.use(express.json());
+  
   fallbackApp.get('/api/health', (req, res) => {
     res.status(500).json({
       error: 'Server initialization failed',
@@ -31,10 +50,25 @@ try {
       timestamp: new Date().toISOString()
     });
   });
+  
+  fallbackApp.get('/api/debug/env-status', (req, res) => {
+    res.status(500).json({
+      error: 'Server initialization failed',
+      message: error.message,
+      environment: {
+        DATABASE_URL: process.env.DATABASE_URL ? 'present' : 'MISSING',
+        JWT_SECRET: process.env.JWT_SECRET ? 'configured' : 'MISSING',
+        NODE_ENV: process.env.NODE_ENV,
+        VERCEL: process.env.VERCEL
+      }
+    });
+  });
+  
   fallbackApp.all('*', (req, res) => {
     res.status(500).json({
       error: 'Server initialization failed',
-      message: error.message
+      message: error.message,
+      details: 'Check /api/debug/env-status for environment diagnostics'
     });
   });
   module.exports = fallbackApp;
