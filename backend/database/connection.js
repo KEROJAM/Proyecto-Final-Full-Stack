@@ -136,6 +136,12 @@ async function initPool() {
   console.log('[DB] VERCEL:', isVercel);
   console.log('[DB] DATABASE_URL existe:', !!process.env.DATABASE_URL);
   
+  if (!process.env.DATABASE_URL && isVercel) {
+    console.error('[DB] CRÍTICO: DATABASE_URL no está configurada en Vercel!');
+    console.error('[DB] Por favor, ve al dashboard de Vercel y agrega DATABASE_URL a las variables de entorno');
+    throw new Error('DATABASE_URL no configurada en Vercel. Configúralo en el dashboard de Vercel.');
+  }
+  
   let config;
   if (process.env.DATABASE_URL) {
     const url = process.env.DATABASE_URL;
@@ -232,8 +238,8 @@ async function initPool() {
     if (!isVercel) {
       process.exit(1);
     }
-    // En Vercel, devolver null pero loguear el error para debugging
-    return null;
+    // En Vercel, relanzar el error para que se maneje correctamente en el middleware
+    throw error;
   }
 }
 
