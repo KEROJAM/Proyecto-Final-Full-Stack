@@ -405,7 +405,16 @@ async function apiRequest(endpoint, options = {}) {
     throw new Error(`Failed to parse API response: ${e.message}`)
   }
   
-  if (!response.ok) throw new Error(data.error || 'Something went wrong')
+  if (!response.ok) {
+    const errorMsg = data.error || 'Something went wrong'
+    if (response.status === 401) {
+      console.error(`[API 401 ERROR] ${endpoint} - Auth header present: ${!!token} - Response:`, data)
+      console.error(`[API 401 ERROR] Token preview: ${token ? token.substring(0, 30) + '...' : 'NO TOKEN'}`)
+    } else {
+      console.error(`[API ERROR ${response.status}] ${endpoint}:`, data)
+    }
+    throw new Error(errorMsg)
+  }
   return data
 }
 
