@@ -190,6 +190,7 @@ const isVercel = process.env.VERCEL === '1';
 
 if (isVercel) {
     module.exports = app;
+    module.exports.getApp = app;
 } else {
     startServer();
 }
