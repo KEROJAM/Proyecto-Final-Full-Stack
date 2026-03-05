@@ -21,8 +21,7 @@ A full stack application for sharing quick one-sentence reviews of books, movies
 - JWT Authentication
 
 ### Frontend
-- HTML5 + CSS3 (modern glassmorphism design)
-- Vanilla JavaScript
+- Vue JS
 
 ## Quick Start
 
