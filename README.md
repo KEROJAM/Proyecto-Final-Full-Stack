@@ -17,7 +17,7 @@ A full stack application for sharing quick one-sentence reviews of books, movies
 
 ### Backend
 - Node.js + Express
-- MySQL
+- Postgress
 - JWT Authentication
 
 ### Frontend
@@ -27,7 +27,7 @@ A full stack application for sharing quick one-sentence reviews of books, movies
 
 ### Prerequisites
 - Node.js
-- MySQL
+- Postgress
 
 ### Setup
 
@@ -47,7 +47,7 @@ npm install
 npm start
 ```
 
-4. Open http://localhost:3001
+4. Open http://localhost:5173
 
 ## Demo Account
 
